@@ -556,7 +556,7 @@ void tvs_parse_questions() {
 		qf->fn = os_fopen (pathbuf, "r");
 		/*  if we can't open it, bail out */
 		if (!qf->fn) {
-			nlog(LOG_WARNING, "Couldn't Open Question File %s for Reading offsets: %s", qf->filename, strerror(errno));
+			nlog(LOG_WARNING, "Couldn't Open Question File %s for Reading offsets: %s", qf->filename, os_strerror());
 			qfnode = list_next(qfl, qfnode);
 			continue;
 		}
@@ -899,13 +899,13 @@ restartquestionselection:
 	}
 	/* ok, now seek to the question in the file */
 	if (os_fseek (qf->fn, qe->offset, SEEK_SET)) {
-		nlog(LOG_WARNING, "Eh? Fseek returned a error(%s): %s", qf->filename, strerror(errno));
-		irc_chanalert (tvs_bot, "Question File Error in %s: %s", qf->filename, strerror(errno));
+		nlog(LOG_WARNING, "Eh? Fseek returned a error(%s): %s", qf->filename, os_strerror());
+		irc_chanalert (tvs_bot, "Question File Error in %s: %s", qf->filename, os_strerror());
 		return;
 	}
 	if (!os_fgets (tmpbuf, 512, qf->fn)) {
-		nlog(LOG_WARNING, "Eh, fgets returned null(%s): %s", qf->filename, strerror(errno));
-		irc_chanalert (tvs_bot, "Question file Error in %s: %s", qf->filename, strerror(errno));
+		nlog(LOG_WARNING, "Eh, fgets returned null(%s): %s", qf->filename, os_strerror());
+		irc_chanalert (tvs_bot, "Question file Error in %s: %s", qf->filename, os_strerror());
 		return;
 	}
 	if (tvs_doregex(qe, tmpbuf) == NS_FAILURE) {

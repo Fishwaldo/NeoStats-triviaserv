@@ -8,19 +8,26 @@ INSTALL_DATA = @INSTALL_DATA@
 DIRECTORY = @DIRINST@/modules/
 INCLUDES = -I@DIRINST@/include/ -I.
 
-SRCS= TriviaServ.c TriviaServ_help.c TriviaUser.c
-OBJS= ${SRCS:.c=.o}
-TARGET= triviaserv.so
-DOCS=README.TriviaServ
-DATA= Questions/*.qns
+SRCS = TriviaServ.c TriviaServ_help.c TriviaUser.c
+OBJS = ${SRCS:.c=.o}
+TARGET = triviaserv.so
+DOCS = README.TriviaServ
+DATA = Questions/*.qns
+SCRIPTS = 
 DISTFILES = $(SRCS) $(DATA) $(DOCS) modconfig.h.in configure install-sh ChangeLog Makefile.in TriviaServ.h
 DISTDIR = @PACKAGE@-@VERSION@
 
+all:	module
+		@echo "Compilation complete."
+		@echo "Run 'make install' (or 'gmake install' on some systems) to install."
+		@echo "If you require support, see the README file."
 
-all:	 module
+# include dependency info
+@MAKEDEPENDENCIES@
 
 .c.o:	
-	 $(CC) -c $(CFLAGS) $(INCLUDES) $<
+	$(CC) -c $(CFLAGS) $(INCLUDES) $<
+	$(CC) -MM $(INCLUDES) -c $< > $*.d
 
 module:	 $(OBJS)
 	 $(LD) -shared -o $(TARGET) $(LDFLAGS) $(OBJS)
@@ -33,11 +40,11 @@ install: module
 	 $(INSTALL) -m 644 $(DOCS) $(DIRECTORY)../doc/
 	 @mkdir $(DIRECTORY)../data/TSQuestions/
 	 $(INSTALL) -m 644 $(DATA) $(DIRECTORY)../data/TSQuestions/
-
-$(OBJS): Makefile
+	@echo "Installation complete."
+	@echo "See the README file for instructions on loading this module."
 
 dist:	
-	@echo -n "Creating Directories"
+	@echo -n "Creating directories"
 	@-rm -rf $(DISTDIR)
 	@mkdir $(DISTDIR)
 	@echo "Done"
@@ -51,6 +58,3 @@ dist:
 	@echo "Tar file $(DISTDIR).tar.gz created, Freshmeat Time"
 
 $(OBJS): Makefile
-
-TriviaServ.o:		TriviaServ.h TriviaServ.c modconfig.h TriviaUser.c
-TriviaServ.so:		TriviaServ.o TriviaServ_help.o TriviaUser.o
