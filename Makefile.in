@@ -47,6 +47,7 @@ dist:
 	@echo -n "Creating directories"
 	@-rm -rf $(DISTDIR)
 	@mkdir $(DISTDIR)
+	@mkdir $(DISTDIR)/Questions
 	@echo "Done"
 	@echo -n "Copying Core Distribution Files"
 	@for file in $(DISTFILES); do \
