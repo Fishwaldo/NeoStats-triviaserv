@@ -92,10 +92,14 @@ int tvs_cmd_start (CmdParams* cmdparams)
 		/* nope, get lost, silently exit */
 		return NS_FAILURE;
 	}
-	tc->active = 1;
-	tc->curquest = NULL;
-	irc_prefmsg (tvs_bot, cmdparams->source, "Starting Trivia in %s shortly", tc->name);
-	irc_chanprivmsg (tvs_bot, tc->name, "%s has activated Trivia. Get Ready for the first question!", cmdparams->source->name);
+	if (!tc->active) {
+		tc->active = 1;
+		tc->curquest = NULL;
+		irc_prefmsg (tvs_bot, cmdparams->source, "Starting Trivia in %s shortly", tc->name);
+		irc_chanprivmsg (tvs_bot, tc->name, "%s has activated Trivia. Get Ready for the first question!", cmdparams->source->name);
+	} else {
+		irc_prefmsg (tvs_bot, cmdparams->source, "Trivia is already running in %s", tc->name);
+	}
 	return NS_SUCCESS;
 }
 
@@ -115,12 +119,16 @@ int tvs_cmd_stop (CmdParams* cmdparams)
 		/* nope, get lost, silently exit */
 		return NS_FAILURE;
 	}
-	tc->active = 0;
-	if (tc->curquest != NULL) {
-		tc->curquest = NULL;
+	if (tc->active) {
+		tc->active = 0;
+		if (tc->curquest != NULL) {
+			tc->curquest = NULL;
+		}
+		irc_prefmsg (tvs_bot, cmdparams->source, "Trivia Stoped in %s", tc->name);
+		irc_chanprivmsg (tvs_bot, tc->name, "%s has stopped Trivia.", cmdparams->source->name);
+	} else {
+		irc_prefmsg (tvs_bot, cmdparams->source, "Trivia is not currently running in %s", tc->name);
 	}
-	irc_prefmsg (tvs_bot, cmdparams->source, "Trivia Stoped in %s", tc->name);
-	irc_chanprivmsg (tvs_bot, tc->name, "%s has stopped Trivia.", cmdparams->source->name);
 	return NS_SUCCESS;
 }
 

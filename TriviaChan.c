@@ -138,6 +138,8 @@ TriviaChan *OnlineTChan(Channel *c) {
 	if (tcn != NULL) {
 		tc = hnode_get(tcn);
 		tc->c = c;
+		tc->active = 0;
+		tc->curquest = NULL;
 		SetChannelModValue (c, tc);
 		if (tc->opchan) {
 			irc_join (tvs_bot, tc->name, "+o");

@@ -404,7 +404,7 @@ int tvs_processtimer(void)
 	TriviaChan *tc;
 	hscan_t hs;
 	hnode_t *hnodes;
-	time_t timediff;	
+	time_t timediff;
 
 	/* reseed the random generator */
 	if (!(rand() % 4)) 
@@ -427,7 +427,7 @@ int tvs_processtimer(void)
 			}
 			/* hint processor */
 			if ((tc->questtime - timediff) < 15) {
-				irc_chanprivmsg (tvs_bot, tc->name, "Less than 15 Seconds Remaining, Hurry up!");
+				irc_chanprivmsg (tvs_bot, tc->name, "Less than %ld Seconds Remaining, Hurry up!", (long)(tc->questtime - timediff + 10));
 				continue;
 			}
 			do_hint(tc);
