@@ -1135,7 +1135,10 @@ void do_hint(TriviaChan *tc)
 				}
 			}
 			/* reset word start and total words in letter */
-			ws = twl= 0;
+			ws = twl = 0;
+			pfw= 1;
+		} else {
+			ws = twl = 0;
 			pfw= 1;
 		}
 	}
