@@ -1,1 +1,11 @@
 * text=auto !eol
+/Makefile.in -text
+/README.TriviaServ -text
+/TriviaServ.c -text
+/TriviaServ.h -text
+/TriviaServ_help.c -text
+/configure -text
+/configure.in -text
+/install-sh -text
+/modconfig.h.in -text
+/questions.txt -text

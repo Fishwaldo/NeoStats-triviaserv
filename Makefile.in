@@ -1,0 +1,55 @@
+#Neostats Module Makefile!
+CC = @CC@
+CFLAGS = @CFLAGS@
+LDFLAGS = @LIBS@
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+DIRECTORY = @DIRINST@/dl/
+INCLUDES = -I@DIRINST@/include/ -I.
+
+SRCS= TriviaServ.c TriviaServ_help.c
+OBJS= ${SRCS:.c=.o}
+TARGET= triviaserv.so
+DOCS=README.TriviaServ
+DATA= questions.txt
+DISTFILES = $(SRCS) $(DATA) $(DOCS) modconfig.h.in configure install-sh ChangeLog Makefile.in TriviaServ.h
+DISTDIR = @PACKAGE@-@VERSION@
+
+
+all:	 module
+
+.c.o:	
+	 $(CC) -c $(CFLAGS) $(INCLUDES) $<
+
+module:	 $(OBJS)
+	 $(LD) -shared -o $(TARGET) $(LDFLAGS) $(OBJS)
+
+clean:
+	 /bin/rm -rf $(TARGET) *.o Makefile *.log modconfig.h
+
+install: module
+	 $(INSTALL) -m 644 $(TARGET) $(DIRECTORY)
+	 $(INSTALL) -m 644 $(DOCS) $(DIRECTORY)../doc/
+	 $(INSTALL) -m 644 $(DATA) $(DIRECTORY)../data/
+
+$(OBJS): Makefile
+
+dist:	
+	@echo -n "Creating Directories"
+	@-rm -rf $(DISTDIR)
+	@mkdir $(DISTDIR)
+	@echo "Done"
+	@echo -n "Copying Core Distribution Files"
+	@for file in $(DISTFILES); do \
+		echo -n "."; \
+		cp -pr $$file $(DISTDIR)/$$file; \
+	done
+	@echo "Done"
+	@tar -czf $(DISTDIR).tar.gz $(DISTDIR)/*
+	@echo "Tar file $(DISTDIR).tar.gz created, Freshmeat Time"
+
+$(OBJS): Makefile
+
+TriviaServ.o:		TriviaServ.h TriviaServ.c modconfig.h
+TriviaServ.so:		TriviaServ.o TriviaServ_help.o
