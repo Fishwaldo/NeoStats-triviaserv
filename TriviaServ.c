@@ -371,7 +371,7 @@ void ModFini()
 	}
 };
 
-#if 0
+#ifndef WIN32
 int file_select (const struct direct *entry) {
 	char *ptr;
 	if ((strcasecmp(entry->d_name, ".")==0) || (strcasecmp(entry->d_name, "..")==0)) {
@@ -456,7 +456,7 @@ int tvs_get_settings() {
 	TriviaChan *tc;
 	hnode_t *tcn;
 	int i, count = 0;
-#if 0
+#ifndef WIN32
 	struct direct **files;
 
 	/* Scan the questions directory for question files, and create the hashs */
@@ -476,7 +476,7 @@ int tvs_get_settings() {
 	}
 	for (i = 1; i<count; i++) {
 		qf = ns_malloc (sizeof(QuestionFiles));
-#if 0
+#ifndef WIN32
 		strlcpy(qf->filename, files[i-1]->d_name, MAXPATH);
 #else
 		strlcpy(qf->filename, filelist[i-1], MAXPATH);
