@@ -113,7 +113,7 @@ void tvs_addpoints(Client *u, TriviaChan *tc)
 TriviaChannelScore *GetUsersChannelScore (char *uname, char *cname) {
 	TriviaChannelScore *ts;
 	
-	ircsnprintf(ts->savename, sizeof(TriviaChannelScore), "%s%s", uname, cname);
+	ircsnprintf(ts->savename, sizeof(ts->savename), "%s%s", uname, cname);
 	DBAFetch( "Scores", ts->savename, ts, sizeof(TriviaChannelScore));
 	return ts;
 }
