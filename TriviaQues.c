@@ -164,10 +164,9 @@ void tvs_quesset(CmdParams* cmdparams, TriviaChan *tc)
 		SaveTChan(tc);
 		return;
 	} else {
-		irc_prefmsg (tvs_bot, cmdparams->source, "Syntax Error. /msg %s help !set", tvs_bot->name);
+		irc_prefmsg (tvs_bot, cmdparams->source, "Syntax Error. /msg %s help QS", tvs_bot->name);
 	}
 	return;		
-	irc_prefmsg (tvs_bot, cmdparams->source, "%s used Set", cmdparams->source->name);
 }
 
 /*

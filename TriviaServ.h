@@ -82,11 +82,9 @@ typedef struct TriviaChan {
 } TriviaChan;
 
 typedef struct TriviaChannelScore {
-	char *prev;
 	char cname[MAXCHANLEN];
 	int score;
 	int lastused;
-	char *next;
 } TriviaChannelScore;
 
 typedef struct TriviaUser {
@@ -94,7 +92,7 @@ typedef struct TriviaUser {
 	char lastregnick[MAXNICK];
 	int networkscore;
 	int lastused;
-	TriviaChannelScore *tcs;
+	list_t *tcsl;
 } TriviaUser;
 
 list_t *qfl;

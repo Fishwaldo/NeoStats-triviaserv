@@ -36,8 +36,9 @@
 void tvs_addpoints(Client *u, TriviaChan *tc) 
 {
 	TriviaUser *tu;
-	TriviaChannelScore *ts, *tsn;
+	TriviaChannelScore *ts;
 	Questions *qe;
+	lnode_t *ln;
 	
 	if (!u | !tc->curquest) {
 		nlog(LOG_WARNING, "Can't find user for AddPoints?!");
@@ -54,31 +55,28 @@ void tvs_addpoints(Client *u, TriviaChan *tc)
 		tu->lastusednick[0] = '\0';
 		tu->networkscore = 0;
 		tu->lastused = 0;
+		tu->tcsl = list_create(-1);
 		ts = ns_calloc(sizeof(TriviaChannelScore));
-		tu->tcs = ts;
-		ts->prev = NULL;
 		strlcpy(ts->cname, tc->c->name, MAXNICK);
 		ts->score = 0;
 		ts->lastused = 0;
-		ts->next = NULL;
+		lnode_create_append(tu->tcsl, ts);
 		SetUserModValue (u, tu);
 	} else {
-		ts = tu->tcs;
-		/* not really a perm loop, just looks like one */
-		while (0 == 0) {
+		ln = list_first(tu->tcsl);
+		while (ln != NULL) {
+			ts = lnode_get(ln);
 			if (!ircstrcasecmp(tc->c->name, ts->cname)) {
 				break;
 			}
-			if (ts->next == NULL) {
-				tsn = ns_calloc(sizeof(TriviaChannelScore));
-				tsn->prev = ts;
-				strlcpy(tsn->cname, tc->c->name, MAXNICK);
-				tsn->score = 0;
-				tsn->lastused = 0;
-				tsn->next = NULL;
-				ts->next = tsn;
-			}
-			ts = ts->next;
+			ln = list_next(tu->tcsl, ln);
+		}
+		if (ln == NULL) {
+			ts = ns_calloc(sizeof(TriviaChannelScore));
+			strlcpy(ts->cname, tc->c->name, MAXNICK);
+			ts->score = 0;
+			ts->lastused = 0;
+			lnode_create_append(tu->tcsl, ts);
 		}
 	}
 	strlcpy(tu->lastusednick, u->name, MAXNICK);
@@ -117,22 +115,20 @@ int KillUser (CmdParams* cmdparams) {
 
 int UserLeaving (Client *u) {
 	TriviaUser *tu;
-	TriviaChannelScore *ts, *tsp;
+	TriviaChannelScore *ts;
+	lnode_t *ln;
 	
 	tu = (TriviaUser *)GetUserModValue(u);
 	if (tu) {
-		ts = tu->tcs;
-		while (ts->next != NULL) {
-			ts = ts->next;
+		while (list_count(tu->tcsl) > 0) {
+			ln = list_first(tu->tcsl);
+			ts = lnode_get(ln);
+			ns_free(ts);
+			list_delete(tu->tcsl, ln);
+			lnode_destroy(ln);
 		}
-		while (ts->prev != NULL) {
-			tsp = ts;
-			ts = tsp->prev;
-			ts->next = NULL;
-			ns_free(tsp);
-		}
-		tu->tcs = NULL;
-		ns_free(ts);
+		list_destroy_auto(tu->tcsl);
+		tu->tcsl = NULL;
 		ns_free(tu);
 	}
 	return NS_SUCCESS;
