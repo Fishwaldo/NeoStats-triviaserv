@@ -75,7 +75,7 @@ struct TChans {
 	Channel *c;
 	int publiccontrol;
 	int active;
-	long lastquest;
+	time_t lastquest;
 	long questtime;
 	Questions *curquest;
 	list_t *qfl;

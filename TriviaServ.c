@@ -125,7 +125,7 @@ static int tvs_chans(CmdParams* cmdparams) {
 	int i;
 	
 	if (!ircstrcasecmp(cmdparams->av[0], "ADD")) {
-		if (cmdparams->ac < 5) {
+		if (cmdparams->ac < 3) {
 			return NS_ERR_SYNTAX_ERROR;
 		}
 		c = find_chan (cmdparams->av[1]);
@@ -152,7 +152,7 @@ static int tvs_chans(CmdParams* cmdparams) {
 		irc_chanalert (tvs_bot, "%s added %s with public control set to %s", cmdparams->source->name, tc->name, tc->publiccontrol ? "On" : "Off");
 		irc_join (tvs_bot, tc->name, 0);
 	} else if (!ircstrcasecmp(cmdparams->av[0], "DEL")) {
-		if (cmdparams->ac < 4) {
+		if (cmdparams->ac < 2) {
 			return NS_ERR_SYNTAX_ERROR;
 		}
 		if (DelTChan(cmdparams->av[1])) {
@@ -190,40 +190,46 @@ int ChanPrivmsg (CmdParams* cmdparams)
 	TriviaChan *tc;
 	char *tmpbuf;
 	
-	if (cmdparams->ac <= 1) {
-		return NS_FAILURE;
-	}
 	/* find if its our channel. */
 	tc = FindTChan(cmdparams->channel);
 	if (!tc) {
 		return NS_FAILURE;
 	}
 	/* if first char is a ! its a command */
-	if (cmdparams->av[1][0] == '!') {
-		if (!ircstrcasecmp("!help", cmdparams->av[1])) {
+	if (cmdparams->param[0] == '*') {
+		if (!ircstrcasecmp("*help", cmdparams->param)) {
 			tvs_sendhelp(cmdparams->source);
-		} else if (!ircstrcasecmp("!score", cmdparams->av[1])) {
+			return NS_SUCCESS;
+		} 
+		if (!ircstrcasecmp("*score", cmdparams->param)) {
 			tvs_sendscore(cmdparams->source, tc);
-		} else if (!ircstrcasecmp("!hint", cmdparams->av[1])) {
+			return NS_SUCCESS;
+		} 
+		if (!ircstrcasecmp("*hint", cmdparams->param)) {
 			tvs_sendhint(cmdparams->source, tc);
+			return NS_SUCCESS;
 		}
 		/* if we get here, then the following commands are limited if publiccontrol is enabled */
-		if ((tc->publiccontrol == 1) && (!is_chanop(cmdparams->av[0], cmdparams->source->name))) {
+		if ((tc->publiccontrol == 1) && (!is_chanop(cmdparams->channel->name, cmdparams->source->name))) {
 			/* nope, get lost, silently exit */
 			return NS_FAILURE;
 		}
-		if (!ircstrcasecmp("!start", cmdparams->av[1])) {
+		if (!ircstrcasecmp("*start", cmdparams->param)) {
 			tvs_starttriv(cmdparams->source, tc);
-		} else if (!ircstrcasecmp("!stop", cmdparams->av[1])) {
+			return NS_SUCCESS;
+		} 
+		if (!ircstrcasecmp("*stop", cmdparams->param)) {
 			tvs_stoptriv(cmdparams->source, tc);
+			return NS_SUCCESS;
 		}
 		/* finally, these ones are restricted always */
-		if (!is_chanop(cmdparams->av[0], cmdparams->source->name)) {
+		if (!is_chanop(cmdparams->channel->name, cmdparams->source->name)) {
 			/* nope, get lost */
 			return NS_FAILURE;
 		}
-		if (!ircstrcasecmp("!set", cmdparams->av[0])) {
+		if (!ircstrcasecmp("*set", cmdparams->av[0])) {
 			tvs_set(cmdparams, tc);
+			return NS_SUCCESS;
 		}
 		/* when we get here, just exit out */
 		return NS_SUCCESS;
@@ -341,7 +347,7 @@ void ModFini()
 	while (lnodes != NULL) {
 		qf = lnode_get(lnodes);
 		if (qf->fn) {
-			fclose(qf->fn);
+			sys_file_close (qf->fn);
 		}
 		ln3 = list_first(qf->QE);
 		while (ln3 != NULL) {
@@ -365,6 +371,7 @@ void ModFini()
 	}
 };
 
+#if 0
 int file_select (const struct direct *entry) {
 	char *ptr;
 	if ((strcasecmp(entry->d_name, ".")==0) || (strcasecmp(entry->d_name, "..")==0)) {
@@ -378,6 +385,69 @@ int file_select (const struct direct *entry) {
 	}
 	return 0;	
 }
+#else
+char* filelist[] = {
+"acronyms1.qns",
+"ads1.qns",
+"algebra1.qns",
+#if 0
+"animals1.qns",
+"authors1.qns",
+"babynames1.qns",
+"bdsm.qns",
+"books1.qns",
+"born1.qns",
+"capitals1.qns",
+"castles1.qns",
+"crypticgroupnames1.qns",
+"darkangel1.qns",
+"discworld1.qns",
+"eighties.qns",
+"eightiesmusic1.qns",
+"eightiestvmovies1.qns",
+"elements1.qns",
+"farscape1.qns",
+"fifties1.qns",
+"fiftiesmusic1.qns",
+"generalknowledge1.qns",
+"history18thcenturyandbefore1.qns",
+"history19thcentury1.qns",
+"history20thcentury1.qns",
+"licenseplates1.qns",
+"links.qns",
+"lyrics1.qns",
+"music1.qns",
+"musicterms1.qns",
+"nametheyear1.qns",
+"nineties1.qns",
+"ninetiesmusic1.qns",
+"olympics1.qns",
+"onthisday1.qns",
+"oz1.qns",
+"phobias1.qns",
+"proverbs1.qns",
+"quotations1.qns",
+"random.qns",
+"rhymetime1.qns",
+"saints1.qns",
+"seventies1.qns",
+"seventiesmusic1.qns",
+"sexterms1.qns",
+"simpsons1.qns",
+"sixties1.qns",
+"sixtiesmusic1.qns",
+"smallville1.qns",
+"sports1.qns",
+"stargatesg11.qns",
+"tvmovies1.qns",
+"uk1.qns",
+"unscramble1.qns",
+"us1.qns",
+"uselessfactsandtrivia1.qns",
+#endif
+NULL
+};
+#endif
 
 int tvs_get_settings() {
 	QuestionFiles *qf;
@@ -385,18 +455,32 @@ int tvs_get_settings() {
 	char **row;
 	TriviaChan *tc;
 	hnode_t *tcn;
-	int i, count;
+	int i, count = 0;
+#if 0
 	struct direct **files;
 
 	/* Scan the questions directory for question files, and create the hashs */
 	count = scandir (questpath, &files, file_select, alphasort);
+#else
+	{
+		char** pfilelist = filelist;
+		while(*pfilelist) {
+			count ++;
+			pfilelist ++;
+		}
+	}
+#endif
 	if (count <= 0) {
 		nlog(LOG_CRITICAL, "No Question Files Found");
 		return NS_FAILURE;
 	}
 	for (i = 1; i<count; i++) {
 		qf = ns_malloc (sizeof(QuestionFiles));
+#if 0
 		strlcpy(qf->filename, files[i-1]->d_name, MAXPATH);
+#else
+		strlcpy(qf->filename, filelist[i-1], MAXPATH);
+#endif
 		qf->fn = 0;
 		qf->QE = list_create(-1);
 		node = lnode_create(qf);
@@ -425,6 +509,7 @@ void tvs_parse_questions() {
 	Questions *qe;
 	lnode_t *qfnode, *qenode;
 	char pathbuf[MAXPATH];
+	char questbuf[QUESTSIZE];	
 	long i = 0;
 	
 	/* run through each file, and only load the offsets into the Questions struct to save memory */	
@@ -433,20 +518,19 @@ void tvs_parse_questions() {
 		qf = lnode_get(qfnode);
 		ircsnprintf(pathbuf, MAXPATH, "%s/%s", questpath, qf->filename);
 		dlog (DEBUG2, "Opening %s for reading offsets", pathbuf);
-		qf->fn = fopen(pathbuf, "r");
+		qf->fn = sys_file_open (pathbuf, FILE_MODE_READ);
 		/*  if we can't open it, bail out */
-		if (qf->fn == NULL) {
+		if (!qf->fn) {
 			nlog(LOG_WARNING, "Couldn't Open Question File %s for Reading offsets: %s", qf->filename, strerror(errno));
 			qfnode = list_next(qfl, qfnode);
 			continue;
 		}
-
 		/* the first line should be the version number and description */
-		if (fgets(pathbuf, QUESTSIZE, qf->fn) != NULL) {
+		if (sys_file_gets (questbuf, QUESTSIZE, qf->fn) != NULL) {
 			/* XXX Parse the Version Number */
 			/* Do this post version 1.0 when we have download/update support */
-			strlcpy(qf->description, pathbuf, strlen(pathbuf)-2);
-			strcat(qf->description, "\0");
+			strlcpy(qf->description, questbuf, QUESTSIZE);
+			strlcat(qf->description, "\0", QUESTSIZE);
 			strlcpy(qf->name, qf->filename, strcspn(qf->filename, ".")+1);
 		} else {
 			/* couldn't load version, description. Bail out */
@@ -459,11 +543,11 @@ void tvs_parse_questions() {
 		/* use pathbuf as we don't actuall care about the data */
 	
 		/* THIS IS DAMN SLOW. ANY HINTS TO SPEED UP? */
-		while (fgets(pathbuf, MAXPATH, qf->fn) != NULL) {
+		while (sys_file_gets (questbuf, QUESTSIZE, qf->fn) != NULL) {
 			i++;
-			qe = ns_malloc (sizeof(Questions));
+			qe = ns_calloc (sizeof(Questions));
 			qe->qn = i;
-			qe->offset = ftell(qf->fn);
+			qe->offset = sys_file_tell (qf->fn);
 			qenode = lnode_create(qe);
 			list_append(qf->QE, qenode);
 		}
@@ -506,7 +590,7 @@ TriviaChan *NewTChan(Channel *c) {
 	if (tcn == NULL) {
 		/* ok, create and insert into hash */
 		tc = ns_calloc (sizeof(TriviaChan));
-		ircsnprintf(tc->name, MAXCHANLEN, c->name);
+		strlcpy (tc->name, c->name, MAXCHANLEN);
 		tc->c = c;
 		/* XXX */
 		tc->questtime = 60;
@@ -624,7 +708,6 @@ void tvs_starttriv(Client* u, TriviaChan *tc)
 {
 	tc->active = 1;
 	irc_prefmsg (tvs_bot, u, "Starting Trivia in %s shortly", tc->name);
-	/* use privmsg to send to a channel instead */
 	irc_chanprivmsg (tvs_bot, tc->name, "%s has activated Trivia. Get Ready for the first question!", u->name);
 }
 
@@ -719,13 +802,13 @@ int tvs_processtimer(void)
 	TriviaChan *tc;
 	hscan_t hs;
 	hnode_t *hnodes;
-	long timediff;	
+	time_t timediff;	
 	static int newrand = 0;
 
 	/* occasionally reseed the random generator just for fun */
 	newrand++;
 	if (newrand > 30 || newrand == 1)
-		srand(me.now);
+		srand((unsigned int)me.now);
 	hash_scan_begin(&hs, tch);
 	while ((hnodes = hash_scan_next(&hs)) != NULL) {
 		tc = hnode_get(hnodes);
@@ -761,7 +844,10 @@ QuestionFiles *tvs_randomquestfile(TriviaChan *tc)
 
 	if (list_isempty(tc->qfl)) {
 		/* if the qfl for this chan is empty, use all qfl's */
-		qfn=(unsigned)(rand()%((int)(list_count(qfl))));
+		if(list_count(qfl) > 1)
+			qfn=(unsigned)(rand()%((int)(list_count(qfl))));
+		else
+			qfn= 0;
 		/* ok, this is bad.. but sigh, not much we can do atm. */
 		lnode = list_first(qfl);
 		qf = lnode_get(lnode);
@@ -830,12 +916,12 @@ restartquestionselection:
 		goto restartquestionselection;
 	}
 	/* ok, now seek to the question in the file */
-	if (fseek(qf->fn, qe->offset, SEEK_SET)) {
+	if (sys_file_seek (qf->fn, qe->offset, SEEK_SET)) {
 		nlog(LOG_WARNING, "Eh? Fseek returned a error(%s): %s", qf->filename, strerror(errno));
 		irc_chanalert (tvs_bot, "Question File Error in %s: %s", qf->filename, strerror(errno));
 		return;
 	}
-	if (!fgets(tmpbuf, 512, qf->fn)) {
+	if (!sys_file_gets (tmpbuf, 512, qf->fn)) {
 		nlog(LOG_WARNING, "Eh, fgets returned null(%s): %s", qf->filename, strerror(errno));
 		irc_chanalert (tvs_bot, "Question file Error in %s: %s", qf->filename, strerror(errno));
 		return;
