@@ -20,7 +20,7 @@
 **  USA
 **
 ** NeoStats CVS Identification
-** $Id: TriviaServ.c 1604 2004-03-01 00:02:21Z Mark $
+** $Id$
 */
 
 /** TriviaServ.c 

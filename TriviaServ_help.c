@@ -18,7 +18,7 @@
 **  USA
 **
 ** NeoStats CVS Identification
-** $Id: SecureServ_help.c 225 2004-02-13 19:00:52Z Mark $
+** $Id$
 */
 
 #include "modconfig.h"
