@@ -1273,6 +1273,10 @@ cat >>confdefs.h <<_ACEOF
 #define MODULE_MINOR "$MODULE_MINOR"
 _ACEOF
 
+cat >>confdefs.h <<_ACEOF
+#define MODULE_REV "$MODULE_REV"
+_ACEOF
+
 DIRINST=~/NeoStats3.0/
 
 CFLAGS="$CFLAGS -O2"

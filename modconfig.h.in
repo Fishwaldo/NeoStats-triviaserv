@@ -9,3 +9,6 @@
 
 /* Minor Version */
 #undef MODULE_MINOR
+
+/* Revision */
+#undef MODULE_REV

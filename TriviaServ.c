@@ -27,14 +27,17 @@
  *  Trivia Service for NeoStats
  */
 
+#ifdef WIN32
+#include "modconfigwin32.h"
+#else
+#include "modconfig.h"
+#endif
 #include "neostats.h"	/* Neostats API */
 #include "TriviaServ.h"
-#ifdef WIN32
-#define MODULE_VERSION "3.0"
-#else
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif
+#ifndef WIN32
 #include <sys/dir.h>
 #include <sys/param.h>
 #endif

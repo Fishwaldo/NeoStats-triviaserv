@@ -1,4 +1,4 @@
-#Neostats Module Makefile!
+#Neostats Module Makefile
 CC = @CC@
 CFLAGS = @CFLAGS@
 LDFLAGS = @LIBS@
@@ -14,7 +14,7 @@ TARGET = triviaserv.so
 DOCS = README.TriviaServ
 DATA = Questions/*.qns
 SCRIPTS = 
-DISTFILES = $(SRCS) $(DATA) $(DOCS) modconfig.h.in configure install-sh ChangeLog Makefile.in TriviaServ.h
+DISTFILES = $(SRCS) $(DATA) $(DOCS) modconfig.h.in configure install-sh ChangeLog Makefile.in TriviaServ.h RELNOTES triviaserv.vcproj modconfigwin32.h
 DISTDIR = @PACKAGE@-@VERSION@
 
 all:	module

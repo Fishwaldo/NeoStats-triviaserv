@@ -67,4 +67,5 @@ Questions/uselessfactsandtrivia1.qns -text
 /configure.in -text
 /install-sh -text
 /modconfig.h.in -text
+/modconfigwin32.h -text
 /triviaserv.vcproj -text
