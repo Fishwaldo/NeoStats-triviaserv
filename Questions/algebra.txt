@@ -1,0 +1,20 @@
+algebra: define the value of x:   -10x - 19 = 19 - 8x*-19
+algebra: define the value of x:   -11+10x+11-33=x+2x+100*19
+algebra: define the value of x:   -32 = x + 3*-35
+algebra: define the value of x:   -x - 1 = 221 + 2x*-74
+algebra: define the value of x:   0x + 7 + 5x = 2x + 30 + 40*21
+algebra: define the value of x:   100x + -89x = 121*11
+algebra: define the value of x:   10x + 3x = 100 + 69*13
+algebra: define the value of x:   10x = 130*13
+algebra: define the value of x:   12 = -x + 1*-11
+algebra: define the value of x:   12x + 0 = 144*12
+algebra: define the value of x:   14 = -2x*-7
+algebra: define the value of x:   15 + 5x = 0*-3
+algebra: define the value of x:   29 - x = 13*16
+algebra: define the value of x:   4x + 6 = -10*-4
+algebra: define the value of x:   5x+9+5x=30+7x- -15+ + 15*17
+algebra: define the value of x:   99 + 5x = 2000 - 5x - 911*99
+algebra: define the value of x:   x - 6 = 9*15
+algebra: solve it: 14a x 3a - 8a  ÷ 2*17
+algebra: solve it: 3x + 2x*5x
+algebra: solve it: 7y - 2y + 3y*8y

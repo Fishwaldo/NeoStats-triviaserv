@@ -1,0 +1,166 @@
+proverbs: ___ conquers all*love
+proverbs: ___ is blind*love
+proverbs: ___ is thicker than water*blood
+proverbs: ____ begins at home.*charity
+proverbs: ____ is bliss*ignorance
+proverbs: ____ is the best medicine*laughter
+proverbs: ____ is the policy*honesty
+proverbs: ____ killed the cat*curiosity
+proverbs: ____ never strikes twice in the same place*lightning
+proverbs: ____ rush in where angels fear to tread*fools
+proverbs: ____ said than done*easier
+proverbs: _____ comes but once a year*christmas
+proverbs: _____ is a virtue*patience
+proverbs: _____ is another day*tomorrow
+proverbs: _____ is the spice of life*vanity
+proverbs: _____ seldom knocks twice*opportunity
+proverbs: _____ what you preach*practice
+proverbs: a ___ in time saves nine*stitch
+proverbs: a ___ penny always turns up*bad
+proverbs: a bird in the hand is worth ___ in the bush*two
+proverbs: a chain is no stronger than its weakest ___.*link
+proverbs: a fool and his ___ are soon parted*money
+proverbs: a friend in need is a ___ indeed.*friend
+proverbs: a man is known by his __*friends
+proverbs: a man is known by the  ___ he keeps*company
+proverbs: a man is known by the ___ he keeps*company
+proverbs: a man's home is his*castle
+proverbs: a rolling ___ gathers no moss*stone
+proverbs: a woman's ___ is never done*work
+proverbs: a woman's place is in the ___.*kitchen
+proverbs: absence makes the heart grow ___*fonder
+proverbs: after a ___ comes a calm*storm
+proverbs: all good things must come to an ___.*end
+proverbs: all is fair in love and __*war
+proverbs: all roads lead to ___*rome
+proverbs: all that glitters is not ___*gold
+proverbs: all the world loves a___*lover
+proverbs: all work and no play makes jack a dull ___.*boy
+proverbs: all's well that ends ___.*well
+proverbs: an ___ a day keeps the doctor away*apple
+proverbs: appearances are ___*deceptive
+proverbs: april showers brings ___ flowers*may
+proverbs: as soon as man is born he begins to ___.*die
+proverbs: as you make your ___, so must you lie in it*bed
+proverbs: as you sow, so shall you ___*reap
+proverbs: ask no questions and hear no ___*lies
+proverbs: bad news travels*fast
+proverbs: barking ___ seldom bite*dogs
+proverbs: beauty is ___ skin-deep.*only
+proverbs: beggars can't be ___*choosers
+proverbs: better die with honor than live with ___*shame
+proverbs: better late ___ never.*than
+proverbs: better the devil you know than the ___ you don't know*devil
+proverbs: better to be alone than in bad*company
+proverbs: birds of a ____ flock together*feather
+proverbs: boys will be ___*boys
+proverbs: business ___ pleasure*before
+proverbs: cleanliness is next to ___*godliness
+proverbs: crime does not ___*pay
+proverbs: dead men have no ___*friends
+proverbs: dead men tell no ___*tales
+proverbs: death is the great ___*leveler
+proverbs: diligence is the mother of ___ fortune*good
+proverbs: discretion is the better part of ___*valor
+proverbs: divide and*rule
+proverbs: do as i say, and ___ as i do*not
+proverbs: do not wear out ___ welcome*your
+proverbs: do unto ___ as you would like them to do unto you.*others
+proverbs: don't count your chickens until they are ____*hatched
+proverbs: don't cut off your nose to spite your ___*face
+proverbs: don't go near the water until you learn how to*swim
+proverbs: don't put all your eggs in one ___*basket
+proverbs: don't wash your dirty linen in*public
+proverbs: early to bed and early to ___, make a man healthy, wealthy and wise.*rise
+proverbs: every bird loves to hear himself*sing
+proverbs: every family has a ___ in the cupboard.*skeleton
+proverbs: every man has ___ his*price
+proverbs: every man is his own worst*enemy
+proverbs: every picture tells a*story
+proverbs: experience is the best ___*teacher
+proverbs: experience is the mother of ___*wisdom
+proverbs: failure ___ success*teaches
+proverbs: faith will ___ mountains*move
+proverbs: familiarity ___ contempt*breeds
+proverbs: fight fire with*fire
+proverbs: finders keepers, ___ weepers*losers
+proverbs: first come,___ ___*first served
+proverbs: first things ___.*first
+proverbs: garbage in, ____ __*garbage out
+proverbs: give him an ___ and he'll take a yard*inch
+proverbs: give the ___ his due*devil
+proverbs: god helps them who help*themselves
+proverbs: good fences make good*neighbors
+proverbs: goodness is better than ___*beauty
+proverbs: great minds __ __*think alike
+proverbs: he that ___ nothing, doubts nothing*knows
+proverbs: he that is master of himself, will soon be master of ___.*others
+proverbs: he who ____ is lost*hesitates
+proverbs: it takes two to __*tango
+proverbs: jack of all ___, master of none*trades
+proverbs: keep your mouth shut and your ___ open*ears
+proverbs: let sleeping dogs ___*lie
+proverbs: life is just a ___ of cherries*bowl
+proverbs: like father, __ __*like son
+proverbs: like mother, __ ___*like daughter
+proverbs: live and __*learn
+proverbs: live and let __*live
+proverbs: look on the ___ side*bright
+proverbs: love makes the ___ go round*world
+proverbs: love will find _ __*a way
+proverbs: man cannot ___ by bread alone*live
+proverbs: mind your own ___*business
+proverbs: money is the root of __ __*all evil
+proverbs: necessity is the ___ of invention*mother
+proverbs: never ___ die.*say
+proverbs: never look a ___ ___ in the mouth*gift horse
+proverbs: never speak ___ of the dead*ill
+proverbs: no man can serve ___ masters*two
+proverbs: no news is __ __*good news
+proverbs: no use crying over __ __*spilt milk
+proverbs: nothing is certain but death and ___*taxes
+proverbs: old habits __ __*die hard
+proverbs: one good turn ___ ___*deserves another
+proverbs: one man's loss is another man's __*gain
+proverbs: out of sight, __ __ __*out of mind
+proverbs: rain, rain, go away, ___ ___ ____ __*come again another day
+proverbs: revenge is ___*sweet
+proverbs: robbing peter to pay __*paul
+proverbs: scratch my back and i'll ___ __*scratch yours
+proverbs: seeing is ___*believing
+proverbs: spare the rod and spoil the ___*child
+proverbs: still waters run*deep
+proverbs: the __ __ catches the worm*early bird
+proverbs: the __ is always greener on the other side of the fence*grass
+proverbs: the ___ hae ears*walls
+proverbs: the ___ step is the hardest*first
+proverbs: the best thngs in life __ __*are free
+proverbs: the bigger they are, __ ___ __ __*the harder they fall
+proverbs: the end justifies the ___*means
+proverbs: the last straw ___ the camel's back*broke
+proverbs: the more you get, the more __ __*you want
+proverbs: the pot calls the kettle ___*black
+proverbs: the proof of the ____ is in the eating*pudding
+proverbs: there is ___ in numbers*safety
+proverbs: there is a place and a time for ___*everything
+proverbs: there is more than one way to skin _ __*a cat
+proverbs: there is no honor among __*thieves
+proverbs: there's no __ without fire*smoke
+proverbs: there's no place like __*home
+proverbs: things are not always what __ ___*they seem
+proverbs: those who live in __ ___ should not throw stones*glass houses
+proverbs: to err is ___*human
+proverbs: true __ never grows old*love
+proverbs: two is company, three is _ __*a crowd
+proverbs: two wrongs do not make _ __*a right
+proverbs: united we stand, ____ we fall*divided
+proverbs: what you don't know can't ___ __*hurt you
+proverbs: when in rome, do as __ ___ __*the romans do
+proverbs: when the cat's away, __ ___ __ __*the mouse will play
+proverbs: where there is no ___, there is no love*trust
+proverbs: where there's a will, there's _ __*a way
+proverbs: you can't ___ everyone*please
+proverbs: you can't judge a __ by it's cover*book
+proverbs: you can't make an omelette without ___ eggs*breaking
+proverbs: you don't get ____ for nothing*something
+proverbs: you win some, __ __ __*you lose some
