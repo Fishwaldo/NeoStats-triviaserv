@@ -32,11 +32,13 @@
 #include "TriviaServ.h"
 #include <strings.h>
 #include <error.h>
+#include <sys/types.h>
+#include <sys/dir.h>
+#include <sys/param.h>
 
 
 
-
-static void tvs_get_settings();
+static int tvs_get_settings();
 static void tvs_parse_questions();
 static int tvs_about();
 static int tvs_version();
@@ -112,7 +114,7 @@ static int tvs_version(User * u, char **av, int ac)
 	prefmsg(u->nick, s_TriviaServ, "%s Version: %s Compiled %s at %s", __module_info.module_name,
 		__module_info.module_version, __module_info.module_build_date, __module_info.module_build_time);
 	prefmsg(u->nick, s_TriviaServ, "http://www.neostats.net");
-	prefmsg(u->nick, s_TriviaServ, "Loaded %ld Questions out of %ld files", (long)list_count(ql), (long)list_count(qfl));
+	prefmsg(u->nick, s_TriviaServ, "Loaded %ld Questions out of %ld files", TriviaServ.Questions, (long)list_count(qfl));
 	return 1;
 }
 
@@ -255,7 +257,6 @@ static int Online(char **av, int ac)
 	if (tvs_bot) {
 		TriviaServ.isonline = 1;
 	}
-	tvs_parse_questions();
 
 	hash_scan_begin(&hs, tch);
 	while ((hnodes = hash_scan_next(&hs)) != NULL) {
@@ -300,12 +301,15 @@ int __ModInit(int modnum, int apiver)
 	strlcpy(s_TriviaServ, "TriviaServ", MAXNICK);
 	TriviaServ.isonline = 0;
 	TriviaServ.modnum = modnum;
+	TriviaServ.Questions = 0;
 	/* XXX todo */
 	TriviaServ.HintRatio = 3;
-	ql = list_create(-1);
 	qfl = list_create(-1);
 	tch = hash_create(-1, 0, 0);
-	tvs_get_settings();
+	if (tvs_get_settings() == NS_FAILURE) 
+		return NS_FAILURE;
+	tvs_parse_questions();
+
 	return 1;
 }
 
@@ -314,7 +318,7 @@ int __ModInit(int modnum, int apiver)
  */
 void __ModFini()
 {
-	lnode_t *lnodes, *ln2;
+	lnode_t *lnodes, *ln2, *ln3, *ln4;
 	hnode_t *hnodes;
 	QuestionFiles *qf;
 	Questions *qe;
@@ -328,25 +332,24 @@ void __ModFini()
 		if (qf->fn) {
 			fclose(qf->fn);
 		}
+		ln3 = list_first(qf->QE);
+		while (ln3 != NULL) {
+			qe = lnode_get(ln3);
+			if (qe->question) {
+				free(qe->question);
+				free(qe->answer);
+			}
+			list_delete(qf->QE, ln3);
+			ln4 = list_next(qf->QE, ln3);
+			lnode_destroy(ln3);
+			free(qe);
+			ln3 = ln4;
+		}
+
 		list_delete(qfl, lnodes);
 		ln2 = list_next(qfl, lnodes);
 		lnode_destroy(lnodes);	
 		free(qf);
-		lnodes = ln2;
-	}
-	lnodes = list_first(ql);
-	while (lnodes != NULL) {
-		qe = lnode_get(lnodes);
-#if 0
-		if (qe->question) {
-			free(qe->question);
-			free(qe->answer);
-		}
-#endif
-		list_delete(ql, lnodes);
-		ln2 = list_next(ql, lnodes);
-		lnode_destroy(lnodes);
-		free(qe);
 		lnodes = ln2;
 	}
 	hash_scan_begin(&hs, tch);
@@ -362,13 +365,28 @@ void __ModFini()
 	}
 };
 
-void tvs_get_settings() {
+int file_select (struct direct *entry) {
+	char *ptr;
+	if ((strcmp(entry->d_name, ".")==0) || (strcmp(entry->d_name, "..")==0)) {
+		return 0;
+	}
+	/* check filename extension */
+	ptr = rindex(entry->d_name, '.');
+	if ((ptr != NULL) && 
+		(strcmp(ptr, ".qns") == 0)) {
+			return NS_SUCCESS;
+	}
+	return 0;	
+}
+
+int tvs_get_settings() {
 	QuestionFiles *qf;
 	lnode_t *node;
 	char **row;
 	TriviaChan *tc;
 	hnode_t *tcn;
-	int i;
+	int i, count;
+	struct direct **files;
 	
 	/* temp */
 	ircsnprintf(TriviaServ.user, MAXUSER, "Trivia");
@@ -376,12 +394,20 @@ void tvs_get_settings() {
 	ircsnprintf(TriviaServ.realname, MAXREALNAME, "Trivia Bot");
 
 
-	qf = malloc(sizeof(QuestionFiles));
-	strncpy(qf->filename, "questions.txt", MAXPATH);
-	qf->fn = 0;
-	node = lnode_create(qf);
-	list_append(qfl, node);
-
+	/* Scan the questions directory for question files, and create the hashs */
+	count = scandir("data/TSQuestions/", &files, file_select, alphasort);
+	if (count <= 0) {
+		nlog(LOG_CRITICAL, LOG_MOD, "No Question Files Found");
+		return NS_FAILURE;
+	}
+	for (i = 1; i<count; i++) {
+		qf = malloc(sizeof(QuestionFiles));
+		strncpy(qf->filename, files[i-1]->d_name, MAXPATH);
+		qf->fn = 0;
+		qf->QE = list_create(-1);
+		node = lnode_create(qf);
+		list_append(qfl, node);
+	}
 	/* load the channel list */
 	if (GetTableData("Chans", &row) > 0) {
 		for (i = 0; row[i] != NULL; i++) {
@@ -397,6 +423,7 @@ void tvs_get_settings() {
 			nlog(LOG_DEBUG1, LOG_MOD, "Loaded TC entry for Channel %s", tc->name);
 		}
 	}
+	return NS_SUCCESS;
 };
 
 void tvs_parse_questions() {
@@ -410,7 +437,7 @@ void tvs_parse_questions() {
 	qfnode = list_first(qfl);
 	while (qfnode != NULL) {
 		qf = lnode_get(qfnode);
-		ircsnprintf(pathbuf, MAXPATH, "data/%s", qf->filename);
+		ircsnprintf(pathbuf, MAXPATH, "data/TSQuestions/%s", qf->filename);
 		nlog(LOG_DEBUG2, LOG_MOD, "Opening %s for reading offsets", pathbuf);
 		qf->fn = fopen(pathbuf, "r");
 		/*  if we can't open it, bail out */
@@ -422,22 +449,26 @@ void tvs_parse_questions() {
 		i = 0;
 		/* ok, now that its opened, we can start reading the offsets into the qe and ql entries. */
 		/* use pathbuf as we don't actuall care about the data */
+
+		/* THIS IS DAMN SLOW. ANY HINTS TO SPEED UP? */
 		while (fgets(pathbuf, MAXPATH, qf->fn) != NULL) {
 			i++;
 			qe = malloc(sizeof(Questions));
-			bzero(qe, sizeof(Questions));
+//			bzero(qe, sizeof(Questions));
 			qe->qn = i;
 			qe->offset = ftell(qf->fn);
-			qe->QF = qf;
 			qenode = lnode_create(qe);
-			list_append(ql, qenode);
+			list_append(qf->QE, qenode);
 		}
 			
 		/* leave the filehandle open for later */
-		nlog(LOG_NOTICE, LOG_MOD, "Finished Reading %s for Offsets (%ld)", qf->filename, (long)list_count(ql));
+		nlog(LOG_NOTICE, LOG_MOD, "Finished Reading %s for Offsets (%ld)", qf->filename, i);
 		qfnode = list_next(qfl, qfnode);
+		TriviaServ.Questions = TriviaServ.Questions + i;
+		i = 0;
 	}		
-	chanalert(s_TriviaServ, "Successfully Loaded information for %ld questions", (long)list_count(ql));
+	/* can't call this, because we are not online yet */
+//	chanalert(s_TriviaServ, "Successfully Loaded information for %ld questions", (long)list_count(ql));
 }
 
 
@@ -641,6 +672,15 @@ void tvs_processtimer() {
 	}
 }
 
+QuestionFiles *tvs_randomquestfile(TriviaChan *tc) {
+	lnode_t *lnode;
+	QuestionFiles *qf;
+	/* XXX. Select Question files for this chan */
+	lnode = list_first(qfl);
+	qf = lnode_get(lnode);
+	return qf;	
+}	
+
 void tvs_newquest(TriviaChan *tc) {
 	int qn;
 	lnode_t *qnode;
@@ -648,18 +688,20 @@ void tvs_newquest(TriviaChan *tc) {
 	QuestionFiles *qf;
 	char tmpbuf[512];
 	
+
+	qf = tvs_randomquestfile(tc);
 restartquestionselection:
-	qn=(unsigned)(rand()%((int)(list_count(ql)-1)));
+	qn=(unsigned)(rand()%((int)(list_count(qf->QE)-1)));
 
 	/* ok, this is bad.. but sigh, not much we can do atm. */
-	qnode = list_first(ql);
+	qnode = list_first(qf->QE);
 	qe = NULL;
 	while (qnode != NULL) {
 		qe = lnode_get(qnode);				
 		if (qe->qn == qn) {
 			break;
 		}
-		qnode = list_next(ql, qnode);
+		qnode = list_next(qf->QE, qnode);
 	}
 	/* ok, we hopefully have the Q */
 	if (qe == NULL) {
@@ -668,7 +710,7 @@ restartquestionselection:
 	}
 
 	/* ok, now seek to the question in the file */
-	qf = qe->QF;	
+
 	if (fseek(qf->fn, qe->offset, SEEK_SET)) {
 		nlog(LOG_WARNING, LOG_MOD, "Eh? Fseek returned a error(%s): %s", qf->filename, strerror(errno));
 		chanalert(s_TriviaServ, "Question File Error in %s: %s", qf->filename, strerror(errno));
@@ -697,6 +739,9 @@ void tvs_ansquest(TriviaChan *tc) {
 	privmsg(tc->name, s_TriviaServ, "Times Up! The Answer was: \2%s\2", qe->answer);
 	/* so we don't chew up memory too much */
 	free(qe->regexp);
+	free(qe->question);
+	free(qe->answer);
+	qe->question = NULL;
 	tc->curquest = NULL;
 }
 
@@ -720,6 +765,8 @@ int tvs_doregex(Questions *qe, char *buf) {
 	/* strip any newlines out */
 	strip(buf);
 	/* we copy the entire thing into the question struct, but it will end up as only the question after pcre does its thing */
+	qe->question = malloc(QUESTSIZE);
+	qe->answer = malloc(ANSSIZE);
 	strlcpy(qe->question, buf, QUESTSIZE);
 	bzero(tmpbuf, ANSSIZE);
 	/* no, its not a infinate loop */
@@ -858,7 +905,7 @@ void do_hint(TriviaChan *tc) {
 void obscure_question(TriviaChan *tc) {
    char *out;
    Questions *qe;
-   int random, j, i;
+   int random, i;
 
    if (tc->curquest == NULL) {
 	nlog(LOG_WARNING, LOG_MOD, "curquest is missing for obscure_answer");

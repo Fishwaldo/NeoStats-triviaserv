@@ -46,11 +46,13 @@ struct TriviaServ {
 	int use_exc;
 	int modnum;
 	int HintRatio;
+	long Questions;
 } TriviaServ;
 
 struct QuestFile {
 	FILE *fn;
 	char filename[MAXPATH];
+	list_t *QE;
 };
 
 typedef struct QuestFile QuestionFiles;
@@ -58,9 +60,8 @@ typedef struct QuestFile QuestionFiles;
 struct Quests {
 	long qn;
 	long offset;
-	QuestionFiles *QF;
-	char question[QUESTSIZE];
-	char answer[ANSSIZE];
+	char *question;
+	char *answer;
 	pcre *regexp;
 	int hints;
 	int points;
@@ -88,7 +89,6 @@ struct TScore {
 
 typedef struct TScore TriviaScore;
 
-list_t *ql;
 list_t *qfl;
 hash_t *tch;
 

@@ -12,7 +12,7 @@ SRCS= TriviaServ.c TriviaServ_help.c TriviaUser.c
 OBJS= ${SRCS:.c=.o}
 TARGET= triviaserv.so
 DOCS=README.TriviaServ
-DATA= questions.txt
+DATA= Questions/*.qns
 DISTFILES = $(SRCS) $(DATA) $(DOCS) modconfig.h.in configure install-sh ChangeLog Makefile.in TriviaServ.h
 DISTDIR = @PACKAGE@-@VERSION@
 
@@ -31,7 +31,8 @@ clean:
 install: module
 	 $(INSTALL) -m 644 $(TARGET) $(DIRECTORY)
 	 $(INSTALL) -m 644 $(DOCS) $(DIRECTORY)../doc/
-	 $(INSTALL) -m 644 $(DATA) $(DIRECTORY)../data/
+	 @mkdir $(DIRECTORY)../data/TSQuestions/
+	 $(INSTALL) -m 644 $(DATA) $(DIRECTORY)../data/TSQuestions/
 
 $(OBJS): Makefile
 
