@@ -229,7 +229,6 @@ int __ChanMessage(char *origin, char **argv, int argc)
 		/* if we get here, then the following commands are limited if publiccontrol is enabled */
 		if ((tc->publiccontrol == 1) && (!is_chanop(argv[0], origin))) {
 			/* nope, get lost, silently exit */
-			printf("haha, nope\n");
 			return NS_FAILURE;
 		}
 		if (!ircstrcasecmp("!start", argv[1])) {
@@ -240,7 +239,6 @@ int __ChanMessage(char *origin, char **argv, int argc)
 		/* finally, these ones are restricted always */
 		if (!is_chanop(argv[0], origin)) {
 			/* nope, get lost */
-			printf("not on your life\n");
 			return NS_FAILURE;
 		}
 		if (!ircstrcasecmp("!set", argv[1])) {
@@ -249,7 +247,6 @@ int __ChanMessage(char *origin, char **argv, int argc)
 		/* when we get here, just exit out */
 		return NS_SUCCESS;
 	}
-	/* XXX if we are here, it could be a answer, process it. */	
 	tmpbuf = joinbuf(argv, argc, 1);
 	strip_mirc_codes(tmpbuf);
 	tvs_testanswer(origin, tc, tmpbuf);
@@ -548,6 +545,7 @@ TriviaChan *NewTChan(Chans *c) {
 	} else {
 		return NULL;
 	}
+	tc = hnode_get(tcn);
 	return tc;
 }
 
@@ -604,7 +602,7 @@ int DelTChan(char *chan) {
 		list_destroy_nodes(tc->qfl);
 		free(tc);
 		hnode_destroy(hnode);
-		/* XXX del out of database */
+		DelRow("Chans", chan);
 		return NS_SUCCESS;
 	} else {
 		return NS_FAILURE;
@@ -614,6 +612,8 @@ int DelTChan(char *chan) {
 int SaveTChan (TriviaChan *tc) {
 
 	SetData((void *)tc->publiccontrol, CFGINT, "Chans", tc->name, "Public");
+	SetData((void *)&tc->questtime, CFGINT, "Chans", tc->name, "Timeout");
+
 	/* XXX Save Category List */
 	return NS_SUCCESS;
 }
@@ -776,7 +776,6 @@ void tvs_processtimer() {
 				continue;
 			}
 			do_hint(tc);
-//			privmsg(tc->name, s_TriviaServ, "Check");
 		}
 	}
 }
@@ -793,10 +792,10 @@ QuestionFiles *tvs_randomquestfile(TriviaChan *tc) {
 		qf = lnode_get(lnode);
 		i = 0;
 		while (i != qfn) {
-			qf = lnode_get(lnode);				
 			lnode = list_next(qfl, lnode);
 			i++;
 		}
+		qf = lnode_get(lnode);				
 		if (qf != NULL) {
 			return qf;
 		} else {
@@ -813,10 +812,10 @@ QuestionFiles *tvs_randomquestfile(TriviaChan *tc) {
 		qf = lnode_get(lnode);
 		i = 0;
 		while (i != qfn) {
-			qf = lnode_get(lnode);				
 			lnode = list_next(tc->qfl, lnode);
 			i++;
 		}
+		qf = lnode_get(lnode);				
 		if (qf != NULL) {
 			return qf;
 		} else {
@@ -876,7 +875,6 @@ restartquestionselection:
 	}	
 	tc->curquest = qe;
 	privmsg(tc->name, s_TriviaServ, "Fingers on the keyboard, Here comes the Next Question!");
-//	privmsg(tc->name, s_TriviaServ, "%s", qe->question);
 	obscure_question(tc);
 	tc->lastquest = me.now;
 
@@ -1011,15 +1009,6 @@ void do_hint(TriviaChan *tc) {
 	nlog(LOG_WARNING, LOG_MOD, "curquest is missing for hint");
 	return;
    }
-#if 0
-   srand(( unsigned)time(NULL));
-
-	/* answer is too small */
-   if((int) strlen(hintanswer) < config->GAME_MinHint) {
-      client->privmsg(config->IRC_Channel, config->TEXT_GAME_Toosmall);
-      return;  
-    }
-#endif
    qe = tc->curquest;
       
    out = strdup(qe->answer);
@@ -1036,7 +1025,6 @@ void do_hint(TriviaChan *tc) {
       }
    }
 
-//   out[0] = qe->answer[0];   
 
    for(i=0;i < (num-1);i++) {
        do {
@@ -1055,7 +1043,6 @@ void obscure_question(TriviaChan *tc) {
    char *out;
    Questions *qe;
    int random, i;
-   int donecolor;
    
    if (tc->curquest == NULL) {
 	nlog(LOG_WARNING, LOG_MOD, "curquest is missing for obscure_answer");
@@ -1089,6 +1076,4 @@ void obscure_question(TriviaChan *tc) {
    }
    privmsg(tc->name, s_TriviaServ, "%s", out);
    free(out);
-
-
 }

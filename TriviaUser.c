@@ -63,12 +63,9 @@ void tvs_addpoints(char *who, TriviaChan *tc) {
 	}
 
 	qe = tc->curquest;
-	printf("%d\n", qe->points);
 	ts->score = ts->score + qe->points;			
 	ts->lastused = me.now;
 	privmsg(tc->name, s_TriviaServ, "%s now has %d Points", u->nick, ts->score);
-
-
 }	
 
 int DelUser(char **av, int ac) {
