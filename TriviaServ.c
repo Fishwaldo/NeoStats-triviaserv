@@ -43,6 +43,7 @@ static void tvs_parse_questions();
 static int tvs_about();
 static int tvs_version();
 static int tvs_chans();
+static int tvs_catlist();
 static TriviaChan *FindTChan(char *);
 static TriviaChan *NewTChan(Chans *);
 static int SaveTChan (TriviaChan *);
@@ -88,6 +89,7 @@ static bot_cmd tvs_commands[]=
 	{"ABOUT",	tvs_about,	0, 	NS_ULEVEL_OPER,		tvs_help_about, 	tvs_help_about_oneline },
 	{"VERSION",	tvs_version,	0, 	NS_ULEVEL_OPER,		tvs_help_version,	tvs_help_version_oneline },
 	{"CHANS",	tvs_chans,	1,	NS_ULEVEL_OPER, 	tvs_help_chans,		tvs_help_chans_oneline },
+	{"CATLIST", 	tvs_catlist, 	0, 	0,			tvs_help_catlist, 	tvs_help_catlist_oneline },
 	{NULL,		NULL,		0, 	0,					NULL, 			NULL}
 };
 
@@ -118,6 +120,21 @@ static int tvs_version(User * u, char **av, int ac)
 	return 1;
 }
 
+static int tvs_catlist(User *u, char **av, int ac) {
+	lnode_t *lnode;
+	QuestionFiles *qf;
+	int i = 1;
+	
+	lnode = list_first(qfl);
+	prefmsg(u->nick, s_TriviaServ, "Question Categories (%d):", list_count(qfl));
+	while (lnode != NULL) {
+		qf = lnode_get(lnode);
+		prefmsg(u->nick, s_TriviaServ, "%d) %s - %s Questions: %d", i, qf->filename, qf->description, (int) list_count(qf->QE));
+		lnode = list_next(qfl, lnode);
+	}
+	prefmsg(u->nick, s_TriviaServ, "End Of List.");
+	return NS_SUCCESS;
+}
 static int tvs_chans(User *u, char **av, int ac) {
 	hscan_t hs;
 	hnode_t *hnode;
@@ -446,10 +463,23 @@ void tvs_parse_questions() {
 			qfnode = list_next(qfl, qfnode);
 			continue;
 		}
+
+		/* the first line should be the version number and description */
+		if (fgets(pathbuf, QUESTSIZE, qf->fn) != NULL) {
+			/* XXX Parse the Version Number */
+			/* Do this post version 1.0 when we have download/update support */
+			strlcpy(qf->description, pathbuf, strlen(pathbuf)-2);
+			strcat(qf->description, "\0");
+		} else {
+			/* couldn't load version, description. Bail out */
+			nlog(LOG_WARNING, LOG_MOD, "Couldn't Load Question File Header for %s", qf->filename);
+			qfnode = list_next(qfl, qfnode);
+			continue;
+		}
 		i = 0;
 		/* ok, now that its opened, we can start reading the offsets into the qe and ql entries. */
 		/* use pathbuf as we don't actuall care about the data */
-
+	
 		/* THIS IS DAMN SLOW. ANY HINTS TO SPEED UP? */
 		while (fgets(pathbuf, MAXPATH, qf->fn) != NULL) {
 			i++;

@@ -48,3 +48,9 @@ const char *tvs_help_chans[] = {
 	NULL
 };
 const char tvs_help_chans_oneline[] = "Chans";
+
+const char *tvs_help_catlist[] = {
+	"catlist help",
+	NULL
+};
+const char tvs_help_catlist_oneline[] = "Catlist";
