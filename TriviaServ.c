@@ -90,7 +90,7 @@ int tvs_cmd_score (CmdParams* cmdparams)
 	TriviaChan *tc;
 
 	/* find if its our channel. */
-	tc = (TriviaChan *)get_channel_moddata (cmdparams->channel);
+	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc) {
 		return NS_FAILURE;
 	}
@@ -103,7 +103,7 @@ int tvs_cmd_hint (CmdParams* cmdparams)
 	TriviaChan *tc;
 
 	/* find if its our channel. */
-	tc = (TriviaChan *)get_channel_moddata (cmdparams->channel);
+	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc) {
 		return NS_FAILURE;
 	}
@@ -115,7 +115,7 @@ int tvs_cmd_start (CmdParams* cmdparams)
 	TriviaChan *tc;
 
 	/* find if its our channel. */
-	tc = (TriviaChan *)get_channel_moddata (cmdparams->channel);
+	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc) {
 		return NS_FAILURE;
 	}
@@ -133,7 +133,7 @@ int tvs_cmd_stop (CmdParams* cmdparams)
 	TriviaChan *tc;
 
 	/* find if its our channel. */
-	tc = (TriviaChan *)get_channel_moddata (cmdparams->channel);
+	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc) {
 		return NS_FAILURE;
 	}
@@ -155,7 +155,7 @@ int tvs_cmd_sset (CmdParams* cmdparams)
 	TriviaChan *tc;
 
 	/* find if its our channel. */
-	tc = (TriviaChan *)get_channel_moddata (cmdparams->channel);
+	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc) {
 		return NS_FAILURE;
 	}
@@ -216,7 +216,7 @@ static int tvs_chans(CmdParams* cmdparams) {
 			irc_prefmsg (tvs_bot, cmdparams->source, "Error: Channel must be online");
 			return NS_FAILURE;
 		}
-		if ((TriviaChan *)get_channel_moddata (c)) {
+		if ((TriviaChan *)GetChannelModValue (c)) {
 			irc_prefmsg (tvs_bot, cmdparams->source, "Error: Channel already exists in the database");
 			return NS_FAILURE;
 		}
@@ -253,7 +253,7 @@ static int tvs_chans(CmdParams* cmdparams) {
 		while ((hnode = hash_scan_next(&hs)) != NULL) {
 			tc = hnode_get(hnode);
 			i++;
-			irc_prefmsg (tvs_bot, cmdparams->source, "\1%d\1) %s (%s) - Public? %s", i, tc->name, (TriviaChan *)get_channel_moddata (tc->c) ? "*" : "",  tc->publiccontrol ? "Yes" : "No");
+			irc_prefmsg (tvs_bot, cmdparams->source, "\1%d\1) %s (%s) - Public? %s", i, tc->name, (TriviaChan *)GetChannelModValue (tc->c) ? "*" : "",  tc->publiccontrol ? "Yes" : "No");
 		}
 		irc_prefmsg (tvs_bot, cmdparams->source, "End of list.");
 	} else {
@@ -274,7 +274,7 @@ int ChanPrivmsg (CmdParams* cmdparams)
 	char *tmpbuf;
 	
 	/* find if its our channel. */
-	tc = (TriviaChan *)get_channel_moddata (cmdparams->channel);
+	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc) {
 		return NS_FAILURE;
 	}
@@ -378,7 +378,7 @@ void ModFini()
 		tc = hnode_get(hnodes);
 		if (tc->c) {
 			c = tc->c;
-			clear_channel_moddata (c);
+			ClearChannelModValue (c);
 		}
 		list_destroy_nodes(tc->qfl);
 		hash_scan_delete(tch, hnodes);
@@ -610,7 +610,7 @@ TriviaChan *NewTChan(Channel *c)
 	TriviaChan *tc;
 	hnode_t *tcn;
 	
-	tc = get_channel_moddata (c);
+	tc = (TriviaChan *) GetChannelModValue (c);
 	if (tc) {
 		nlog(LOG_WARNING, "Hrm, Chan %s already has a TriviaChanStruct with it", c->name);
 		return tc;
@@ -626,7 +626,7 @@ TriviaChan *NewTChan(Channel *c)
 	tc->c = c;
 	/* XXX */
 	tc->questtime = 60;
-	set_channel_moddata (c, tc);
+	SetChannelModValue (c, tc);
 	tc->qfl = list_create(-1);
 	hnode_create_insert (tch, tc, tc->name);
 	dlog (DEBUG1, "Created New TC entry for Channel %s", c->name);
@@ -638,12 +638,12 @@ TriviaChan *OfflineTChan(Channel *c) {
 	if (!c) {
 		return NULL;
 	}
-	tc = get_channel_moddata (c);
+	tc = (TriviaChan *) GetChannelModValue (c);
 	if (tc == NULL) {
 		nlog(LOG_WARNING, "TriviaChan %s already marked offline?!!?!", c->name);
 		return NULL;
 	}
-	clear_channel_moddata (c);
+	ClearChannelModValue (c);
 	tc->c = NULL;
 	tc->active = 0;
 	tc->curquest = NULL;
@@ -657,7 +657,7 @@ TriviaChan *OnlineTChan(Channel *c) {
 	if (!c) {
 		return NULL;
 	}
-	tc = get_channel_moddata (c);
+	tc = (TriviaChan *) GetChannelModValue (c);
 	if (tc) {
 		nlog(LOG_WARNING, "TriviaChan %s already marked online?!?!", c->name);
 		return tc;
@@ -666,7 +666,7 @@ TriviaChan *OnlineTChan(Channel *c) {
 	if (tcn != NULL) {
 		tc = hnode_get(tcn);
 		tc->c = c;
-		set_channel_moddata (c, tc);
+		SetChannelModValue (c, tc);
 		irc_join (tvs_bot, tc->name, 0);
 		return tc;
 	}
@@ -681,7 +681,7 @@ int DelTChan(char *chan) {
 	if (hnode) {
 		tc = hnode_get(hnode);
 		/* part the channel if its online */
-		if ((TriviaChan *)get_channel_moddata (tc->c)) OfflineTChan(find_chan (tc->name));
+		if ((TriviaChan *)GetChannelModValue (tc->c)) OfflineTChan(find_chan (tc->name));
 		hash_delete(tch, hnode);
 		list_destroy_nodes(tc->qfl);
 		ns_free (tc);

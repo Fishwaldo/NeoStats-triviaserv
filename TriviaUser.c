@@ -39,7 +39,7 @@ void tvs_addpoints(Client *u, TriviaChan *tc)
 		nlog(LOG_WARNING, "Can't find user for AddPoints?!");
 		return;
 	}
-	ts = get_user_moddata (u);
+	ts = (TriviaScore *) GetUserModValue (u);
 	if (!ts) {
 		if (!(u->user->Umode & UMODE_REGNICK)) {
 			/* not a registered user */
@@ -47,7 +47,7 @@ void tvs_addpoints(Client *u, TriviaChan *tc)
 		}
 		ts = ns_calloc(sizeof(TriviaScore));
 		strlcpy(ts->nick, u->name, MAXNICK);
-		set_user_moddata (u, ts);
+		SetUserModValue (u, ts);
 	}
 
 	qe = tc->curquest;
@@ -60,7 +60,7 @@ int DelUser (CmdParams* cmdparams)
 {
 	TriviaScore *ts;
 
-	ts = get_user_moddata (cmdparams->source);
+	ts = (TriviaScore *) GetUserModValue (cmdparams->source);
 	if (ts) {
 		/* XXX Save User */
 		ns_free(ts);
