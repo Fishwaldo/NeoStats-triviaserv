@@ -491,7 +491,7 @@ NULL
 };
 #endif
 
-void LoadChannel( void *data )
+int LoadChannel( void *data )
 {
 	TriviaChan *tc;
 
@@ -500,6 +500,7 @@ void LoadChannel( void *data )
 	tc->qfl = list_create(-1);
 	hnode_create_insert(tch, tc, tc->name);
 	dlog (DEBUG1, "Loaded TC entry for Channel %s", tc->name);
+	return NS_FALSE;
 }
 
 int tvs_get_settings() {
