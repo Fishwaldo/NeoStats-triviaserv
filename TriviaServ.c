@@ -232,7 +232,7 @@ static int tvs_chans(CmdParams* cmdparams) {
 		}
 		SaveTChan(tc);
 		irc_prefmsg (tvs_bot, cmdparams->source, "Added %s with public control set to %s", tc->name, tc->publiccontrol ? "On" : "Off");
-		irc_chanalert (tvs_bot, "%s added %s with public control set to %s", cmdparams->source->name, tc->name, tc->publiccontrol ? "On" : "Off");
+		command_report(tvs_bot, "%s added %s with public control set to %s", cmdparams->source->name, tc->name, tc->publiccontrol ? "On" : "Off");
 		irc_join (tvs_bot, tc->name, 0);
 	} else if (!ircstrcasecmp(cmdparams->av[0], "DEL")) {
 		if (cmdparams->ac < 2) {
@@ -240,7 +240,7 @@ static int tvs_chans(CmdParams* cmdparams) {
 		}
 		if (DelTChan(cmdparams->av[1])) {
 			irc_prefmsg (tvs_bot, cmdparams->source, "Deleted %s out of Channel List", cmdparams->av[1]);
-			irc_chanalert (tvs_bot, "%s deleted %s out of Channel List", cmdparams->source->name, cmdparams->av[1]);
+			command_report(tvs_bot, "%s deleted %s out of Channel List", cmdparams->source->name, cmdparams->av[1]);
 			return NS_SUCCESS;
 		} else {
 			irc_prefmsg (tvs_bot, cmdparams->source, "Cant find %s in channel list.", cmdparams->av[1]);
@@ -637,7 +637,7 @@ TriviaChan *OfflineTChan(Channel *c) {
 	tc->c = NULL;
 	tc->active = 0;
 	tc->curquest = NULL;
-	irc_part (tvs_bot, c->name);
+	irc_part( tvs_bot, c->name, NULL );
 	return tc;
 }
 
