@@ -44,6 +44,16 @@ static int SaveTChan (TriviaChan *);
 static int DelTChan(char *);
 int PartChan(char **av, int ac);
 int NewChan(char **av, int ac);
+static TriviaChan *OnlineTChan(Chans *c);
+
+static void tvs_sendhelp(char *);
+static void tvs_sendscore(char *, TriviaChan *);
+static void tvs_sendhint(char *, TriviaChan *);
+static void tvs_starttriv(char *, TriviaChan *);
+static void tvs_stoptriv(char *, TriviaChan *);
+static void tvs_set(char *, TriviaChan *, char **, int );
+
+
 
 static ModUser *tvs_bot;
 
@@ -175,6 +185,47 @@ static int tvs_chans(User *u, char **av, int ac) {
  */
 int __ChanMessage(char *origin, char **argv, int argc)
 {
+	TriviaChan *tc;
+	
+	/* find if its our channel. */
+	tc = FindTChan(argv[0]);
+	if (!tc) {
+		return NS_FAILURE;
+	}
+	/* if first char is a ! its a command */
+	if (argv[1][0] == '!') {
+		if (!ircstrcasecmp("!help", argv[1])) {
+			tvs_sendhelp(origin);
+		} else if (!ircstrcasecmp("!score", argv[1])) {
+			tvs_sendscore(origin, tc);
+		} else if (!ircstrcasecmp("!hint", argv[1])) {
+			tvs_sendhint(origin, tc);
+		}
+		/* if we get here, then the following commands are limited if publiccontrol is enabled */
+		if ((tc->publiccontrol == 1) && (!is_chanop(argv[0], origin))) {
+			/* nope, get lost, silently exit */
+			printf("haha, nope\n");
+			return NS_FAILURE;
+		}
+		if (!ircstrcasecmp("!start", argv[1])) {
+			tvs_starttriv(origin, tc);
+		} else if (!ircstrcasecmp("!stop", argv[1])) {
+			tvs_stoptriv(origin, tc);
+		}
+		/* finally, these ones are restricted always */
+		if (!is_chanop(argv[0], origin)) {
+			/* nope, get lost */
+			printf("not on your life\n");
+			return NS_FAILURE;
+		}
+		if (!ircstrcasecmp("!set", argv[1])) {
+			tvs_set(origin, tc, argv, argc);
+		}
+		/* when we get here, just exit out */
+		return NS_SUCCESS;
+	}
+	/* XXX if we are here, it could be a answer, process it. */	
+	printf("%s\n", argv[1]);
 	return 1;
 }
 
@@ -183,6 +234,11 @@ int __ChanMessage(char *origin, char **argv, int argc)
  */
 static int Online(char **av, int ac)
 {
+	hscan_t hs;
+	hnode_t *hnodes;
+	TriviaChan *tc;
+	Chans *c;
+	
 	/* Introduce a bot onto the network */
 	tvs_bot = init_mod_bot(s_TriviaServ, TriviaServ.user, TriviaServ.host, TriviaServ.realname,
 	                        services_bot_modes, BOT_FLAG_RESTRICT_OPERS, tvs_commands, tvs_settings, __module_info.module_name);
@@ -190,6 +246,17 @@ static int Online(char **av, int ac)
 		TriviaServ.isonline = 1;
 	}
 	tvs_parse_questions();
+
+	hash_scan_begin(&hs, tch);
+	while ((hnodes = hash_scan_next(&hs)) != NULL) {
+		tc = hnode_get(hnodes);
+		c = findchan(tc->name);
+		if (c) {
+			OnlineTChan(c);
+		}
+	}
+
+
 	return 1;
 };
 
@@ -279,6 +346,10 @@ void __ModFini()
 void tvs_get_settings() {
 	QuestionFiles *qf;
 	lnode_t *node;
+	char **row;
+	TriviaChan *tc;
+	hnode_t *tcn;
+	int i;
 	
 	/* temp */
 	ircsnprintf(TriviaServ.user, MAXUSER, "Trivia");
@@ -291,7 +362,19 @@ void tvs_get_settings() {
 	qf->fn = 0;
 	node = lnode_create(qf);
 	list_append(qfl, node);
-	
+
+	/* load the channel list */
+	if (GetTableData("Chans", &row) > 0) {
+		for (i = 0; row[i] != NULL; i++) {
+			tc = malloc(sizeof(TriviaChan));
+			bzero(tc, sizeof(TriviaChan))
+			ircsnprintf(tc->name, CHANLEN, row[i]);
+			GetData((void *)&tc->publiccontrol, CFGINT, "Chans", row[i], "Public");
+			tcn = hnode_create(tc);
+			hash_insert(tch, tcn, tc->name);
+			nlog(LOG_DEBUG1, LOG_MOD, "Loaded TC entry for Channel %s", tc->name);
+		}
+	}
 };
 
 void tvs_parse_questions() {
@@ -437,7 +520,9 @@ int DelTChan(char *chan) {
 }
 
 int SaveTChan (TriviaChan *tc) {
-	/* XXX todo */
+
+	SetData((void *)tc->publiccontrol, CFGINT, "Chans", tc->name, "Public");
+
 	return NS_SUCCESS;
 }
 
@@ -454,7 +539,31 @@ int PartChan(char **av, int ac) {
 
 int NewChan(char **av, int ac) {
 	Chans *c;
+	if (TriviaServ.isonline != 1) 
+		return NS_FAILURE;
 	c = findchan(av[0]);
 	OnlineTChan(c);
 	return NS_SUCCESS;
+}
+
+void tvs_sendhelp(char *who) {
+	prefmsg(who, s_TriviaServ, "This is help");
+}
+
+void tvs_sendscore(char *who, TriviaChan *tc) {
+	prefmsg(who, s_TriviaServ, "Score for %s in %s", who, tc->name);
+}
+
+void tvs_sendhint(char *who, TriviaChan *tc) {
+	prefmsg(who, s_TriviaServ, "Hint for %s in %s", who, tc->name);
+}
+
+void tvs_starttriv(char *who, TriviaChan *tc) {
+	prefmsg(who, s_TriviaServ, "Starting Trivia for %s in %s", who, tc->name);
+}
+void tvs_stoptriv(char *who, TriviaChan *tc) {
+	prefmsg(who, s_TriviaServ, "Stop Trivia for %s in %s", who, tc->name);
+}
+void tvs_set(char *who, TriviaChan *tc, char **av, int ac) {
+	prefmsg(who, s_TriviaServ, "%s used Set", who);
 }
