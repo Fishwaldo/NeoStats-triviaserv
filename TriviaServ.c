@@ -346,7 +346,7 @@ ModuleEvent module_events[] = {
  *  Required if you need to do initialisation of your module when
  *  first loaded
  */
-int ModInit (Module *mod_ptr)
+int ModInit( void )
 {
 	TriviaServ.Questions = 0;
 	/* XXX todo */
@@ -362,7 +362,7 @@ int ModInit (Module *mod_ptr)
 /** Init module
  *  Required if you need to do cleanup of your module when it ends
  */
-void ModFini()
+int ModFini( void )
 {
 	lnode_t *lnodes, *ln2, *ln3, *ln4;
 	hnode_t *hnodes;
@@ -411,7 +411,8 @@ void ModFini()
 		ns_free (qf);
 		lnodes = ln2;
 	}
-};
+	return NS_SUCCESS;
+}
 
 #ifndef WIN32
 int file_select (const struct direct *entry) {
