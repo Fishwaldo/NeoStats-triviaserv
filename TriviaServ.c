@@ -296,7 +296,6 @@ static int tvs_chans(CmdParams* cmdparams) {
 		} else {
 			tc->publiccontrol = 0;
 		}
-		tc->scorepoints = TriviaServ.defaultpoints;
 		SaveTChan(tc);
 		irc_prefmsg (tvs_bot, cmdparams->source, "Added %s with public control set to %s", tc->name, tc->publiccontrol ? "On" : "Off");
 		CommandReport(tvs_bot, "%s added %s with public control set to %s", cmdparams->source->name, tc->name, tc->publiccontrol ? "On" : "Off");
@@ -693,6 +692,7 @@ TriviaChan *NewTChan(Channel *c)
 	strlcpy (tc->name, c->name, MAXCHANLEN);
 	tc->c = c;
 	/* XXX */
+	tc->scorepoints = TriviaServ.defaultpoints;
 	tc->questtime = 60;
 	SetChannelModValue (c, tc);
 	tc->qfl = list_create(-1);
@@ -1113,40 +1113,33 @@ void tvs_testanswer(Client* u, TriviaChan *tc, char *line)
 void do_hint(TriviaChan *tc) 
 {
 	Questions *qe;
-	int random, num, i, twl, ws, we, swl, i2, swlt, pfw;
+	int i, i2, ws, we, twl, swl, swlt, pfw, num;
 
 	if (tc->curquest == NULL) {
 		nlog(LOG_WARNING, "curquest is missing for hint");
 		return;
 	}
 	qe = tc->curquest;
-	num = strlen(qe->answer) / TriviaServ.HintRatio;
 	if (qe->hints == 0) {
-		num = num * qe->hints;
 		for(i=0;i < (int)strlen(qe->lasthint);i++) {
-			if(qe->lasthint[i] != ' ' && qe->lasthint[i] != '/') {
+			/* only replace alphanumeric characters */
+			num = (int)qe->lasthint[i];
+			if((num > 96 && num < 123) || (num > 64 && num < 91) || (num > 47 && num < 58)) {
 				qe->lasthint[i] = '-';
 			}
 		}
 	}
 	/*
-	 * might not be the best way, but works it seems
+	 * might not be the best way, but works
 	 * adds one letter per word per hint
 	*/
 	twl = ws = we = pfw = 0;	
 	for(i=0;i < ((int)strlen(qe->lasthint) + 1);i++) {
-		/*
-		 * split answers into words, to ensure letters added in each word
-		*/
+		/* Get word start and end, to ensure letters added in each word */
 		if (qe->lasthint[i] != ' ' && qe->lasthint[i] != '/' && i != (int)strlen(qe->lasthint)) {
-			/*
-			 * don't do this if the full length has already
-			 * been counted, the len+1 is just to get the
-			 * last word to the 'else if' below
-			 * "/" set as word seperator as well, as it
-			 * stuffs up the hint system otherwise
-			*/
-			if (qe->answer[i] != '-') {
+			/* only count alphanumeric characters */
+			num = (int)qe->answer[i];
+			if ((num > 96 && num < 123) || (num > 64 && num < 91) || (num > 47 && num < 58)) {
 				twl++;
 			}
 			if (!ws && pfw) {
@@ -1155,14 +1148,14 @@ void do_hint(TriviaChan *tc)
 			we = i;
 		} else if (twl > qe->hints && twl > 0) { /* checks that there are more letters than hints */
 			/* pick a random number for the amount of
-			 * letters left in the word, then count through
-			 * the letters (not counting letters already replaced)
-			 * and replace the correct one
+			 * letters left in the word, then replace
+			 * the correct one
 			*/
 			swl= (rand() % (twl - qe->hints));
 			swlt= 0;
 			for (i2=ws ; i2 <= we ; i2++) {
-				if (qe->lasthint[i2] == '-' && qe->answer[i2] != '-') {
+				num = (int)qe->answer[i2];
+				if (qe->lasthint[i2] == '-' && ((num > 96 && num < 123) || (num > 64 && num < 91) || (num > 47 && num < 58))) {
 					if (swl == swlt) {
 						qe->lasthint[i2] = qe->answer[i2];
 						break;
@@ -1178,20 +1171,8 @@ void do_hint(TriviaChan *tc)
 			pfw= 1;
 		}
 	}
-	
-	
-/* commented out old hint system
-
-	for(i=0;i < (num-1);i++) {
-		do {
-			random =  (int) ((double)rand() * (strlen(qe->answer) - 1 + 1.0) / (RAND_MAX+1.0));
-		} while(out[random] == ' ' || out[random] != '-');
-		out[random] = qe->answer[random];   
-	} 
-*/
 	qe->hints++;
 	irc_chanprivmsg (tvs_bot, tc->name, "Hint %d: %s", qe->hints, qe->lasthint);
-/*	ns_free (out); */
 }
 
 void obscure_question(TriviaChan *tc) 
