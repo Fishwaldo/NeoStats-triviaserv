@@ -200,6 +200,38 @@ int tvs_cmd_qs (CmdParams* cmdparams)
 	return NS_SUCCESS;
 }
 
+int tvs_cmd_sp (CmdParams* cmdparams)
+{
+	int ps=0;
+	TriviaChan *tc;
+
+	/* check command was from a channel. */
+	if (!cmdparams->channel) {
+		irc_prefmsg (tvs_bot, cmdparams->source, "SETPOINTS Command is used in Channel Only");
+		return NS_FAILURE;
+	}
+	/* find if its our channel. */
+	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
+	if (!tc) {
+		return NS_FAILURE;
+	}
+	/* finally, these ones are restricted always */
+	if (!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) {
+		/* nope, get lost */
+		return NS_FAILURE;
+	}
+	ps = atoi(cmdparams->av[0]);
+	if (ps < 1 || ps > 25) {
+		irc_prefmsg (tvs_bot, cmdparams->source, "Points must be between 1 and 25 (%d)", ps);
+		return NS_FAILURE;
+	} else {
+		tc->scorepoints = ps;
+		irc_prefmsg (tvs_bot, cmdparams->source, "Channel Correct Answer Points now set to %d", tc->scorepoints);
+		SaveTChan(tc);
+	}
+	return NS_SUCCESS;
+}
+
 static bot_cmd tvs_commands[]=
 {
 	{"CHANS",	tvs_chans,	1,	NS_ULEVEL_OPER, tvs_help_chans,		tvs_help_chans_oneline },
@@ -209,13 +241,15 @@ static bot_cmd tvs_commands[]=
 	{"START",	tvs_cmd_start,	0, 	0,		tvs_help_start,		tvs_help_start_oneline},
 	{"STOP",	tvs_cmd_stop,	0, 	0,		tvs_help_stop,		tvs_help_stop_oneline},
 	{"QS",		tvs_cmd_qs,	1, 	0,		tvs_help_qs,		tvs_help_qs_oneline},
+	{"SETPOINTS",	tvs_cmd_sp,	1, 	0,		tvs_help_sp,		tvs_help_sp_oneline},
 	{NULL,		NULL,		0, 	0,		NULL, 			NULL}
 };
 
 static bot_setting tvs_settings[]=
 {
-	{"USEEXCLUSIONS", 	&TriviaServ.use_exc,	SET_TYPE_BOOLEAN,	0, 0, 		NS_ULEVEL_ADMIN, "Exclusions",	NULL,	tvs_help_set_exclusions },
-	{NULL,			NULL,				0,					0, 0, 	0,				 NULL,			NULL,	NULL	},
+	{"USEEXCLUSIONS", 	&TriviaServ.use_exc,		SET_TYPE_BOOLEAN,	0,	0, 		NS_ULEVEL_ADMIN,	"Exclusions",		NULL,	tvs_help_set_exclusions,	NULL,	NULL},
+	{"DEFAULTPOINTS", 	&TriviaServ.defaultpoints,	SET_TYPE_INT,		1,	25, 		NS_ULEVEL_ADMIN,	"DefaultPoints",	NULL,	tvs_help_set_defaultpoints,	NULL,	(void *)1 },
+	{NULL,			NULL,				0,			0,	0,		0,			NULL,			NULL,	NULL,				NULL,	NULL},
 };
 
 static int tvs_catlist(CmdParams* cmdparams) {
@@ -262,6 +296,7 @@ static int tvs_chans(CmdParams* cmdparams) {
 		} else {
 			tc->publiccontrol = 0;
 		}
+		tc->scorepoints = TriviaServ.defaultpoints;
 		SaveTChan(tc);
 		irc_prefmsg (tvs_bot, cmdparams->source, "Added %s with public control set to %s", tc->name, tc->publiccontrol ? "On" : "Off");
 		CommandReport(tvs_bot, "%s added %s with public control set to %s", cmdparams->source->name, tc->name, tc->publiccontrol ? "On" : "Off");
@@ -285,7 +320,7 @@ static int tvs_chans(CmdParams* cmdparams) {
 		while ((hnode = hash_scan_next(&hs)) != NULL) {
 			tc = hnode_get(hnode);
 			i++;
-			irc_prefmsg (tvs_bot, cmdparams->source, "\2%d\2) %s (%s) - Public? %s", i, tc->name, (TriviaChan *)GetChannelModValue (tc->c) ? "Open" : "Closed",  tc->publiccontrol ? "Yes" : "No");
+			irc_prefmsg (tvs_bot, cmdparams->source, "\2%d\2) %s (%s) - Public? %s - Points %d", i, tc->name, (TriviaChan *)GetChannelModValue (tc->c) ? "Open" : "Closed",  tc->publiccontrol ? "Yes" : "No", tc->scorepoints);
 		}
 		irc_prefmsg (tvs_bot, cmdparams->source, "End of list.");
 	} else {
@@ -948,6 +983,7 @@ restartquestionselection:
 		irc_chanalert (tvs_bot, "Question Parsing Failed. Please Check Log File");
 		return;
 	}	
+	qe->points = tc->scorepoints;
 	tc->curquest = qe;
 	irc_chanprivmsg (tvs_bot, tc->name, "Fingers on the keyboard, Here comes the Next Question!");
 	obscure_question(tc);
@@ -1008,7 +1044,7 @@ int tvs_doregex(Questions *qe, char *buf) {
 				}
 				ns_free (re);
 				/* XXXX Random Scores? */
-				qe->points = 10;
+				qe->points = 1;
 				qe->hints = 0;
 				return NS_SUCCESS;
 			} 
@@ -1039,7 +1075,7 @@ int tvs_doregex(Questions *qe, char *buf) {
 		}
 	}		
 	/* XXXX Random Scores? */
-	qe->points = 10;
+	qe->points = 1;
 	return NS_SUCCESS;		
 	
 }

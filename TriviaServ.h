@@ -42,6 +42,7 @@ struct TriviaServ {
 	int use_exc;
 	int HintRatio;
 	long Questions;
+	int defaultpoints;
 } TriviaServ;
 
 struct QuestFile {
@@ -74,6 +75,7 @@ struct TChans {
 	Channel *c;
 	int publiccontrol;
 	int active;
+	int scorepoints;
 	time_t lastquest;
 	long questtime;
 	Questions *curquest;
@@ -96,6 +98,7 @@ hash_t *tch;
 /* TriviaServ_help.c */
 extern const char *tvs_about[];
 extern const char *tvs_help_set_exclusions[];
+extern const char *tvs_help_set_defaultpoints[];
 extern const char *tvs_help_chans[];
 extern const char tvs_help_chans_oneline[];
 extern const char *tvs_help_catlist[];
@@ -106,6 +109,8 @@ extern const char *tvs_help_stop[];
 extern const char tvs_help_stop_oneline[];
 extern const char *tvs_help_qs[];
 extern const char tvs_help_qs_oneline[];
+extern const char *tvs_help_sp[];
+extern const char tvs_help_sp_oneline[];
 /* TriviaUser.c */
 void tvs_addpoints(Client *u, TriviaChan *tc);
 int QuitUser(CmdParams* cmdparams);

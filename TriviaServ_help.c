@@ -32,6 +32,11 @@ const char *tvs_help_set_exclusions[] = {
 	NULL
 };
 
+const char *tvs_help_set_defaultpoints[] = {
+	"Sets Default/Network Points for a correct Answer (1 to 25)",
+	NULL
+};
+
 const char *tvs_help_chans[] = {
 	"Syntax: \2CHANS LIST\2",
 	"        \2CHANS ADD <channel> <PublicControl>\2",
@@ -91,3 +96,15 @@ const char *tvs_help_qs[] = {
 	NULL
 };
 const char tvs_help_qs_oneline[] = "Change Question Sets In Channel";
+
+const char *tvs_help_sp[] = {
+	"Syntax: (in Channel only)",
+	"        \2!SETPOINTS <#>\2",
+	"",
+	"This command Sets the amount of points to score",
+	"for each correctly answered question in the channel.",
+	"",
+	"NOTE: This does not affect the network wide scores.",
+	NULL
+};
+const char tvs_help_sp_oneline[] = "Set points for correct answer";
