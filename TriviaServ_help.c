@@ -129,3 +129,22 @@ const char *tvs_help_opchan[] = {
 	NULL
 };
 const char tvs_help_opchan_oneline[] = "Set CHANOP level";
+
+const char *tvs_help_resetscores[] = {
+	"Syntax: (in Channel only)",
+	"        \2!RESETSCORES <#>\2",
+	"",
+	"This command Sets the period that the channel scores",
+	"will be automatically reset to 0.",
+	"",
+	"Valid options are :",
+	"0 -> Never Reset Scores",
+	"1 -> Reset Scores Daily",
+	"2 -> Reset Scores Weekly",
+	"3 -> Reset Scores Monthly",
+	"4 -> Reset Scores Quarterly",
+	"5 -> Reset Scores Bi-Anually",
+	"6 -> Reset Scores Anually",
+	NULL
+};
+const char tvs_help_resetscores_oneline[] = "Set time duration to reset Channel scores";

@@ -50,6 +50,10 @@ const char *questpath = "data/TSQuestions/";
 
 int tvs_get_settings();
 int tvs_processtimer (void);
+int tvs_dailytimer (void);
+int tvs_weeklytimer (void);
+int tvs_monthlytimer (void);
+int tvs_clearscoretimers (int ct);
 
 Bot *tvs_bot;
 
@@ -76,24 +80,25 @@ ModuleInfo module_info = {
 
 static bot_cmd tvs_commands[]=
 {
-	{"CHANS",	tvs_chans,	1,	NS_ULEVEL_OPER, tvs_help_chans,		tvs_help_chans_oneline },
-	{"CATLIST",	tvs_catlist,	0, 	0,		tvs_help_catlist,	tvs_help_catlist_oneline },
-	{"SCORE",	tvs_cmd_score,	0, 	0,		NULL,			NULL},
-	{"HINT",	tvs_cmd_hint,	0, 	0,		NULL,			NULL},
-	{"START",	tvs_cmd_start,	0, 	0,		tvs_help_start,		tvs_help_start_oneline},
-	{"STOP",	tvs_cmd_stop,	0, 	0,		tvs_help_stop,		tvs_help_stop_oneline},
-	{"QS",		tvs_cmd_qs,	1, 	0,		tvs_help_qs,		tvs_help_qs_oneline},
-	{"SETPOINTS",	tvs_cmd_sp,	1, 	0,		tvs_help_sp,		tvs_help_sp_oneline},
-	{"PUBLIC",	tvs_cmd_pc,	1, 	0,		tvs_help_pc,		tvs_help_pc_oneline},
-	{"OPCHAN",	tvs_cmd_opchan,	1, 	0,		tvs_help_opchan,	tvs_help_opchan_oneline},
-	{NULL,		NULL,		0, 	0,		NULL, 			NULL}
+	{"CHANS",	tvs_chans,		1,	NS_ULEVEL_OPER, tvs_help_chans,		tvs_help_chans_oneline },
+	{"CATLIST",	tvs_catlist,		0, 	0,		tvs_help_catlist,	tvs_help_catlist_oneline },
+	{"SCORE",	tvs_cmd_score,		0, 	0,		NULL,			NULL},
+	{"HINT",	tvs_cmd_hint,		0, 	0,		NULL,			NULL},
+	{"START",	tvs_cmd_start,		0, 	0,		tvs_help_start,		tvs_help_start_oneline},
+	{"STOP",	tvs_cmd_stop,		0, 	0,		tvs_help_stop,		tvs_help_stop_oneline},
+	{"QS",		tvs_cmd_qs,		1, 	0,		tvs_help_qs,		tvs_help_qs_oneline},
+	{"SETPOINTS",	tvs_cmd_sp,		1, 	0,		tvs_help_sp,		tvs_help_sp_oneline},
+	{"PUBLIC",	tvs_cmd_pc,		1, 	0,		tvs_help_pc,		tvs_help_pc_oneline},
+	{"OPCHAN",	tvs_cmd_opchan,		1, 	0,		tvs_help_opchan,	tvs_help_opchan_oneline},
+	{"RESETSCORES",	tvs_cmd_resetscores,	1, 	0,		tvs_help_resetscores,	tvs_help_resetscores_oneline},
+	{NULL,		NULL,			0, 	0,		NULL, 			NULL}
 };
 
 static bot_setting tvs_settings[]=
 {
-	{"EXCLUSIONS", 	&TriviaServ.use_exc,		SET_TYPE_BOOLEAN,	0,	0, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_exclusions,	NULL,	NULL},
+	{"EXCLUSIONS", 		&TriviaServ.use_exc,		SET_TYPE_BOOLEAN,	0,	0, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_exclusions,	NULL,	NULL},
 	{"DEFAULTPOINTS", 	&TriviaServ.defaultpoints,	SET_TYPE_INT,		1,	25, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_defaultpoints,	NULL,	(void *)1 },
-	{NULL,			NULL,				0,			0,	0,		0,			NULL,			NULL,				NULL,	NULL},
+	{NULL,			NULL,				0,			0,	0,		0,			NULL,	NULL,				NULL,	NULL},
 };
 
 /*
@@ -122,8 +127,8 @@ int ChanPrivmsg (CmdParams* cmdparams)
 /** BotInfo */
 static BotInfo tvs_botinfo = 
 {
-	"Trivia", 
-	"Trivia1", 
+	"TriviaServ", 
+	"TriviaServ1", 
 	"TS", 
 	BOT_COMMON_HOST, 
 	"Trivia Bot", 	
@@ -163,6 +168,10 @@ int ModSynch (void)
 	}
 	/* kick of the question/answer timer */
 	AddTimer (TIMER_TYPE_INTERVAL, tvs_processtimer, "tvs_processtimer", 10);
+	/* kick of the reset scores timers */
+	AddTimer (TIMER_TYPE_DAILY, tvs_dailytimer, "tvs_dailytimer", 0);
+	AddTimer (TIMER_TYPE_WEEKLY, tvs_weeklytimer, "tvs_weeklytimer", 0);
+	AddTimer (TIMER_TYPE_MONTHLY, tvs_monthlytimer, "tvs_monthlytimer", 0);
 	return NS_SUCCESS;
 }
 
@@ -412,6 +421,66 @@ int tvs_processtimer(void)
 				continue;
 			}
 			do_hint(tc);
+		}
+	}
+	return NS_SUCCESS;
+}
+
+/*
+ * Process Timers to clear channel scores
+*/
+int tvs_dailytimer(void) {
+	return tvs_clearscoretimers(1);
+}
+
+int tvs_weeklytimer(void) {
+	return tvs_clearscoretimers(2);
+}
+
+int tvs_monthlytimer(void) {
+	int i;
+
+	for (i = 4 ; i < 7 ; i++) {
+		tvs_clearscoretimers(i);
+	}
+	return tvs_clearscoretimers(3);
+}
+
+int tvs_clearscoretimers(int ct) {
+	TriviaChan *tc;
+	hscan_t hs;
+	hnode_t *hnodes;
+	time_t timediff;	
+
+	hash_scan_begin(&hs, tch);
+	while ((hnodes = hash_scan_next(&hs)) != NULL) {
+		tc = hnode_get(hnodes);
+		if (tc != NULL) {
+			/* for each channel check if to be cleared */
+			if (tc->resettype = ct) {
+				switch (ct) {
+					case 1:
+					case 2:
+					case 3:
+						tc->lastreset = me.now;
+						break;
+					case 4:
+						if (tc->lastreset < (me.now - (86 * 86400))) {
+							tc->lastreset = me.now;
+						}
+						break;
+					case 5:
+						if (tc->lastreset < (me.now - (177 * 86400))) {
+							tc->lastreset = me.now;
+						}
+						break;
+					case 6:
+						if (tc->lastreset < (me.now - (363 * 86400))) {
+							tc->lastreset = me.now;
+						}
+						break;
+				}
+			}
 		}
 	}
 	return NS_SUCCESS;

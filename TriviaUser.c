@@ -88,6 +88,9 @@ void tvs_addpoints(Client *u, TriviaChan *tc)
 	tu->networkscore += TriviaServ.defaultpoints;
 	tu->lastused = me.now;
 	qe = tc->curquest;
+	if (ts->lastused < tc->lastreset) {
+		ts->score = 0;
+	}
 	ts->score += qe->points;
 	ts->lastused = me.now;
 	irc_chanprivmsg (tvs_bot, tc->name, "%s now has %d Points in %s, and %d points network wide", u->name, ts->score, tc->c->name, tu->networkscore);

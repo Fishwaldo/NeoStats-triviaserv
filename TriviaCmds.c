@@ -274,6 +274,59 @@ int tvs_cmd_opchan (CmdParams* cmdparams)
 }
 
 /*
+ * Allows Chanops to configure Automatic Score Resetting
+*/
+int tvs_cmd_resetscores (CmdParams* cmdparams) {
+	TriviaChan *tc;
+
+	/* check command was from a channel. */
+	if (!cmdparams->channel) {
+		irc_prefmsg (tvs_bot, cmdparams->source, "RESETSCORES Command is used in Channel Only");
+		return NS_FAILURE;
+	}
+	/* find if its our channel. */
+	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
+	if (!tc) {
+		return NS_FAILURE;
+	}
+	/* finally, these ones are restricted always */
+	if (!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) {
+		/* nope, get lost */
+		return NS_FAILURE;
+	}
+	if ( atoi(cmdparams->av[0]) < 0 || atoi(cmdparams->av[0]) > 6) {
+		irc_prefmsg (tvs_bot, cmdparams->source, "RESETSCORES Value out of range (0 to 6 allowed only).");
+		return NS_FAILURE;
+	}
+	tc->resettype = atoi(cmdparams->av[0]);
+	SaveTChan(tc);
+	switch (tc->resettype) {
+		case 0:
+			irc_chanprivmsg (tvs_bot, cmdparams->channel->name, "Channel Trivia Scores will no longer reset automatically.");
+			break;
+		case 1:
+			irc_chanprivmsg (tvs_bot, cmdparams->channel->name, "Channel Trivia Scores will now be reset Daily.");
+			break;
+		case 2:
+			irc_chanprivmsg (tvs_bot, cmdparams->channel->name, "Channel Trivia Scores will now be reset Weekly.");
+			break;
+		case 3:
+			irc_chanprivmsg (tvs_bot, cmdparams->channel->name, "Channel Trivia Scores will now be reset Monthly.");
+			break;
+		case 4:
+			irc_chanprivmsg (tvs_bot, cmdparams->channel->name, "Channel Trivia Scores will now be reset Quarterly.");
+			break;
+		case 5:
+			irc_chanprivmsg (tvs_bot, cmdparams->channel->name, "Channel Trivia Scores will now be reset Bi-Anually.");
+			break;
+		case 6:
+			irc_chanprivmsg (tvs_bot, cmdparams->channel->name, "Channel Trivia Scores will now be reset Anually.");
+			break;
+	}
+	return NS_SUCCESS;
+}
+
+/*
  * Lists all Question Sets / Categories available on the network
 */
 int tvs_catlist(CmdParams* cmdparams) {
@@ -351,7 +404,8 @@ int tvs_chans(CmdParams* cmdparams) {
 		while ((hnode = hash_scan_next(&hs)) != NULL) {
 			tc = hnode_get(hnode);
 			i++;
-			irc_prefmsg (tvs_bot, cmdparams->source, "\2%d\2) %s (%s) - Public? %s - OpChan? %s - Points %d", i, tc->name, (TriviaChan *)GetChannelModValue (tc->c) ? "Open" : "Closed", tc->publiccontrol ? "Yes" : "No", tc->opchan ? "Yes" : "No", tc->scorepoints);
+			irc_prefmsg (tvs_bot, cmdparams->source, "\2%d\2) %s (%s) - Public? %s - OpChan? %s - Reset? %s - Points %d", i, tc->name, (TriviaChan *)GetChannelModValue (tc->c) ? "Open" : "Closed", tc->publiccontrol ? "Yes" : "No", tc->opchan ? "Yes" : "No",
+				(tc->resettype == 0) ? "None" : (tc->resettype == 1) ? "Daily" : (tc->resettype == 2) ? "Weekly" : (tc->resettype == 3) ? "Monthly" : (tc->resettype == 4) ? "Quarterly" : (tc->resettype == 5) ? "Bi-Anually" : "Anually", tc->scorepoints);
 		}
 		irc_prefmsg (tvs_bot, cmdparams->source, "End of list.");
 	} else {

@@ -68,6 +68,8 @@ TriviaChan *NewTChan(Channel *c)
 	tc->scorepoints = TriviaServ.defaultpoints;
 	tc->questtime = 60;
 	tc->opchan = 1;
+	tc->resettype = 0;
+	tc->lastreset = me.now;
 	SetChannelModValue (c, tc);
 	tc->qfl = list_create(-1);
 	hnode_create_insert (tch, tc, tc->name);
