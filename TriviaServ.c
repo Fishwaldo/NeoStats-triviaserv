@@ -126,7 +126,7 @@ int tvs_cmd_start (CmdParams* cmdparams)
 	if (!tc) {
 		return NS_FAILURE;
 	}
-	if ((tc->publiccontrol == 1) && (!IsChanOp(cmdparams->channel->name, cmdparams->source->name))) {
+	if ((tc->publiccontrol == 0) && (!IsChanOp(cmdparams->channel->name, cmdparams->source->name))) {
 		/* nope, get lost, silently exit */
 		return NS_FAILURE;
 	}
@@ -144,7 +144,7 @@ int tvs_cmd_stop (CmdParams* cmdparams)
 	if (!tc) {
 		return NS_FAILURE;
 	}
-	if ((tc->publiccontrol == 1) && (!IsChanOp(cmdparams->channel->name, cmdparams->source->name))) {
+	if ((tc->publiccontrol == 0) && (!IsChanOp(cmdparams->channel->name, cmdparams->source->name))) {
 		/* nope, get lost, silently exit */
 		return NS_FAILURE;
 	}
@@ -177,14 +177,14 @@ int tvs_cmd_sset (CmdParams* cmdparams)
 
 static bot_cmd tvs_commands[]=
 {
-	{"CHANS",	tvs_chans,		1,	NS_ULEVEL_OPER, tvs_help_chans,		tvs_help_chans_oneline },
-	{"CATLIST", tvs_catlist,	0, 	0,				tvs_help_catlist,	tvs_help_catlist_oneline },
-	{"SCORE",	tvs_cmd_score,	0, 	0,				NULL,	NULL},
-	{"HINT",	tvs_cmd_hint,	0, 	0,				NULL,	NULL},
-	{"START",	tvs_cmd_start,	0, 	0,				NULL,	NULL},
-	{"STOP",	tvs_cmd_stop,	0, 	0,				NULL,	NULL},
-	{"SSET",	tvs_cmd_sset,	0, 	0,				NULL,	NULL},
-	{NULL,		NULL,			0, 	0,				NULL, 				NULL}
+	{"CHANS",	tvs_chans,	1,	NS_ULEVEL_OPER, tvs_help_chans,		tvs_help_chans_oneline },
+	{"CATLIST",	tvs_catlist,	0, 	0,		tvs_help_catlist,	tvs_help_catlist_oneline },
+	{"SCORE",	tvs_cmd_score,	0, 	0,		NULL,			NULL},
+	{"HINT",	tvs_cmd_hint,	0, 	0,		NULL,			NULL},
+	{"START",	tvs_cmd_start,	0, 	0,		tvs_help_start,		tvs_help_start_oneline},
+	{"STOP",	tvs_cmd_stop,	0, 	0,		tvs_help_stop,		tvs_help_stop_oneline},
+	{"SSET",	tvs_cmd_sset,	0, 	0,		NULL,			NULL},
+	{NULL,		NULL,		0, 	0,		NULL, 			NULL}
 };
 
 static bot_setting tvs_settings[]=
@@ -240,7 +240,7 @@ static int tvs_chans(CmdParams* cmdparams) {
 		SaveTChan(tc);
 		irc_prefmsg (tvs_bot, cmdparams->source, "Added %s with public control set to %s", tc->name, tc->publiccontrol ? "On" : "Off");
 		CommandReport(tvs_bot, "%s added %s with public control set to %s", cmdparams->source->name, tc->name, tc->publiccontrol ? "On" : "Off");
-		irc_join (tvs_bot, tc->name, 0);
+		irc_join (tvs_bot, tc->name, "+o");
 	} else if (!ircstrcasecmp(cmdparams->av[0], "DEL")) {
 		if (cmdparams->ac < 2) {
 			return NS_ERR_SYNTAX_ERROR;
@@ -260,7 +260,7 @@ static int tvs_chans(CmdParams* cmdparams) {
 		while ((hnode = hash_scan_next(&hs)) != NULL) {
 			tc = hnode_get(hnode);
 			i++;
-			irc_prefmsg (tvs_bot, cmdparams->source, "\1%d\1) %s (%s) - Public? %s", i, tc->name, (TriviaChan *)GetChannelModValue (tc->c) ? "*" : "",  tc->publiccontrol ? "Yes" : "No");
+			irc_prefmsg (tvs_bot, cmdparams->source, "\2%d\2) %s (%s) - Public? %s", i, tc->name, (TriviaChan *)GetChannelModValue (tc->c) ? "Open" : "Closed",  tc->publiccontrol ? "Yes" : "No");
 		}
 		irc_prefmsg (tvs_bot, cmdparams->source, "End of list.");
 	} else {
@@ -268,8 +268,6 @@ static int tvs_chans(CmdParams* cmdparams) {
 	}
 	return NS_SUCCESS;
 }
-
-
 
 /** Channel message processing
  *  What do we do with messages in channels
@@ -387,8 +385,7 @@ int ModFini( void )
 	hscan_t hs;
 	TriviaChan *tc;
 	Channel *c;
-	
-	
+
 	hash_scan_begin(&hs, tch);
 	while ((hnodes = hash_scan_next(&hs)) != NULL) {
 		tc = hnode_get(hnodes);

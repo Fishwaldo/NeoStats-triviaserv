@@ -99,6 +99,10 @@ extern const char *tvs_help_chans[];
 extern const char tvs_help_chans_oneline[];
 extern const char *tvs_help_catlist[];
 extern const char tvs_help_catlist_oneline[];
+extern const char *tvs_help_start[];
+extern const char tvs_help_start_oneline[];
+extern const char *tvs_help_stop[];
+extern const char tvs_help_stop_oneline[];
 /* TriviaUser.c */
 void tvs_addpoints(Client *u, TriviaChan *tc);
 int QuitUser(CmdParams* cmdparams);

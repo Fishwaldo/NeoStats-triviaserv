@@ -24,7 +24,7 @@
 #include "neostats.h"	/* Neostats API */
 
 const char *tvs_about[] = {
-	"help",
+	"Trivia Service",
 	NULL
 };
 const char *tvs_help_set_exclusions[] = {
@@ -33,13 +33,41 @@ const char *tvs_help_set_exclusions[] = {
 };
 
 const char *tvs_help_chans[] = {
-	"chans",
+	"Syntax: \2CHANS LIST\2",
+	"        \2CHANS ADD <channel> <PublicControl>\2",
+	"        \2CHANS DEL <channel> <PublicControl>\2",
+	"",
+	"This command lets you assign Triva Channels",
+	"",
+	"\2LIST\2 will list the current Trivia",
+	"",
+	"\2ADD\2 will add <channel> to the Trivia Channels,",
+	"If Public Control is set to OFF, Only Channel Ops may",
+	"use !start and !stop, if set to ON, anyone May !Start and !Stop",
+	"",
+	"\2DEL\2 will delete <channel> from the Trivia Channels",
 	NULL
 };
-const char tvs_help_chans_oneline[] = "Channel";
+const char tvs_help_chans_oneline[] = "Add/Delete Trivia Channels";
 
 const char *tvs_help_catlist[] = {
 	"catlist help",
 	NULL
 };
 const char tvs_help_catlist_oneline[] = "Catlist";
+
+const char *tvs_help_start[] = {
+	"Syntax: (in Channel only) \2!START\2",
+	"",
+	"Starts Asking Questions in channel",
+	NULL
+};
+const char tvs_help_start_oneline[] = "Start Trivia";
+
+const char *tvs_help_stop[] = {
+	"Syntax: (in Channel only) \2!STOP\2",
+	"",
+	"Stops Asking Questions in channel",
+	NULL
+};
+const char tvs_help_stop_oneline[] = "Stop Trivia";
