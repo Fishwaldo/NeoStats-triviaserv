@@ -1092,7 +1092,7 @@ void do_hint(TriviaChan *tc)
 				ws = i;
 			}
 			we = i;
-		} else if (twl > qe->hints) { /* checks that there are more letters than hints */
+		} else if (twl > qe->hints && twl > 0) { /* checks that there are more letters than hints */
 			/* pick a random number for the amount of
 			 * letters left in the word, then count through
 			 * the letters (not counting letters already replaced)
@@ -1104,12 +1104,13 @@ void do_hint(TriviaChan *tc)
 				if (qe->lasthint[i2] == '-' && qe->answer[i2] != '-') {
 					if (swl == swlt) {
 						qe->lasthint[i2] = qe->answer[i2];
-						twl= 0;
 						break;
 					}
 					swlt++;
 				}
 			}
+			/* reset word start and total words in letter */
+			ws = twl= 0;
 			pfw= 1;
 		}
 	}
