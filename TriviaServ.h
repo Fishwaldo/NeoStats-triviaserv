@@ -58,6 +58,9 @@ struct TChans {
 	char name[CHANLEN];
 	Chans *c;
 	int publiccontrol;
+	int active;
+	long lastquest;
+	long questtime;
 	Questions *curquest;
 };
 

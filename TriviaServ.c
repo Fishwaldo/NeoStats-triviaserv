@@ -53,6 +53,8 @@ static void tvs_starttriv(char *, TriviaChan *);
 static void tvs_stoptriv(char *, TriviaChan *);
 static void tvs_set(char *, TriviaChan *, char **, int );
 
+static void tvs_newquest(TriviaChan *);
+static void tvs_ansquest(TriviaChan *);
 
 
 static ModUser *tvs_bot;
@@ -256,6 +258,8 @@ static int Online(char **av, int ac)
 		}
 	}
 
+	/* kick of the question/answer timer */
+	add_mod_timer("tvs_processtimer", "TriviaServ Process Timer",  __module_info.module_name, 10);
 
 	return 1;
 };
@@ -370,6 +374,9 @@ void tvs_get_settings() {
 			bzero(tc, sizeof(TriviaChan))
 			ircsnprintf(tc->name, CHANLEN, row[i]);
 			GetData((void *)&tc->publiccontrol, CFGINT, "Chans", row[i], "Public");
+			if (GetData((void *)&tc->questtime, CFGINT, "Chans", row[i], "Timeout") < 0) {
+				tc->questtime = 60;
+			}
 			tcn = hnode_create(tc);
 			hash_insert(tch, tcn, tc->name);
 			nlog(LOG_DEBUG1, LOG_MOD, "Loaded TC entry for Channel %s", tc->name);
@@ -452,6 +459,8 @@ TriviaChan *NewTChan(Chans *c) {
 		bzero(tc, sizeof(TriviaChan))
 		ircsnprintf(tc->name, CHANLEN, c->name);
 		tc->c = c;
+		/* XXX */
+		tc->questtime = 60;
 		c->moddata[TriviaServ.modnum] = tc;
 		tcn = hnode_create(tc);
 		hash_insert(tch, tcn, tc->name);
@@ -474,6 +483,8 @@ TriviaChan *OfflineTChan(Chans *c) {
 	tc = c->moddata[TriviaServ.modnum];
 	c->moddata[TriviaServ.modnum] = NULL;
 	tc->c = NULL;
+	tc->active = 0;
+	tc->curquest = NULL;
 	spart_cmd(s_TriviaServ, c->name);
 	return tc;
 }
@@ -559,11 +570,114 @@ void tvs_sendhint(char *who, TriviaChan *tc) {
 }
 
 void tvs_starttriv(char *who, TriviaChan *tc) {
-	prefmsg(who, s_TriviaServ, "Starting Trivia for %s in %s", who, tc->name);
+	tc->active = 1;
+	prefmsg(who, s_TriviaServ, "Starting Trivia in %s shortly", tc->name);
+	/* use privmsg to send to a channel instead */
+	privmsg(tc->name, s_TriviaServ, "%s has activated Trivia. Get Ready for the first question!", who);
 }
 void tvs_stoptriv(char *who, TriviaChan *tc) {
-	prefmsg(who, s_TriviaServ, "Stop Trivia for %s in %s", who, tc->name);
+	tc->active = 0;
+	if (tc->curquest != NULL) {
+		tc->curquest = NULL;
+	}
+	prefmsg(who, s_TriviaServ, "Trivia Stoped in %s", tc->name);
+	privmsg(tc->name, s_TriviaServ, "%s has stopped Trivia.", who);
 }
 void tvs_set(char *who, TriviaChan *tc, char **av, int ac) {
 	prefmsg(who, s_TriviaServ, "%s used Set", who);
+}
+
+void tvs_processtimer() {
+	TriviaChan *tc;
+	hscan_t hs;
+	hnode_t *hnodes;
+	long timediff;	
+	static int newrand = 0;
+
+	/* occasionally reseed the random generator just for fun */
+	newrand++;
+	if (newrand > 30 || newrand == 1)
+		srand(me.now);
+
+	hash_scan_begin(&hs, tch);
+	while ((hnodes = hash_scan_next(&hs)) != NULL) {
+		tc = hnode_get(hnodes);
+		if ((tc->c != NULL) && (tc->active == 1)) {
+			/* ok, channel is active. if curquest is null, ask a new question */
+			if (tc->curquest == NULL) {
+				tvs_newquest(tc);
+				continue;
+			}
+			/* if we are here, its a current question. */
+			timediff = me.now - tc->lastquest;
+printf("%ld\n", timediff);
+			if (timediff > tc->questtime) {
+				/* timeout, answer the question */
+				tvs_ansquest(tc);
+				continue;
+			}
+			if (timediff < 15) {
+				privmsg(tc->name, s_TriviaServ, "Less than 15 Seconds Remaining, Hurry up!");
+				continue;
+			}
+			privmsg(tc->name, s_TriviaServ, "Check");
+		}
+	}
+}
+
+void tvs_newquest(TriviaChan *tc) {
+	int qn;
+	int i;
+	lnode_t *qnode;
+	Questions *qe;
+	QuestionFiles *qf;
+	char tmpbuf[512];
+	
+restartquestionselection:
+	qn=(unsigned)(rand()%((int)(list_count(ql)-1)));
+
+	/* ok, this is bad.. but sigh, not much we can do atm. */
+	qnode = list_first(ql);
+	qe = NULL;
+	while (qnode != NULL) {
+		qe = lnode_get(qnode);				
+		if (qe->qn == qn) {
+			break;
+		}
+		qnode = list_next(ql, qnode);
+	}
+	/* ok, we hopefully have the Q */
+	if (qe == NULL) {
+		nlog(LOG_WARNING, LOG_MOD, "Eh? Never got a Question");
+		goto restartquestionselection;
+	}
+
+	/* ok, now seek to the question in the file */
+	qf = qe->QF;	
+	if (fseek(qf->fn, qe->offset, SEEK_SET)) {
+		nlog(LOG_WARNING, LOG_MOD, "Eh? Fseek returned a error(%s): %s", qf->filename, strerror(errno));
+		chanalert(s_TriviaServ, "Question File Error in %s: %s", qf->filename, strerror(errno));
+		return;
+	}
+	if (!fgets(tmpbuf, 512, qf->fn)) {
+		nlog(LOG_WARNING, LOG_MOD, "Eh, fgets returned null(%s): %s", qf->filename, strerror(errno));
+		chanalert(s_TriviaServ, "Question file Error in %s: %s", qf->filename, strerror(errno));
+		return;
+	}
+	tvs_doregex(qe, tmpbuf);	
+	privmsg(tc->name, s_TriviaServ, "New Question %d: %s", qn, tmpbuf);
+	tc->lastquest = me.now;
+
+}
+
+void tvs_ansquest(TriviaChan *tc) {
+	privmsg(tc->name, s_TriviaServ, "Answer");
+	tc->curquest = NULL;
+}
+
+void tvs_doregex(Questions *qe, char *buf) {
+
+
+
+
 }
