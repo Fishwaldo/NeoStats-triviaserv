@@ -83,11 +83,6 @@ int tvs_cmd_start (CmdParams* cmdparams)
 {
 	TriviaChan *tc;
 
-	/* check command was from a channel. */
-	if (!cmdparams->channel) {
-		irc_prefmsg (tvs_bot, cmdparams->source, "START Command is used in Channel Only");
-		return NS_FAILURE;
-	}
 	/* find if its our channel. */
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc) {
@@ -111,11 +106,6 @@ int tvs_cmd_stop (CmdParams* cmdparams)
 {
 	TriviaChan *tc;
 
-	/* check command was from a channel. */
-	if (!cmdparams->channel) {
-		irc_prefmsg (tvs_bot, cmdparams->source, "STOP Command is used in Channel Only");
-		return NS_FAILURE;
-	}
 	/* find if its our channel. */
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc) {
@@ -142,11 +132,6 @@ int tvs_cmd_qs (CmdParams* cmdparams)
 {
 	TriviaChan *tc;
 
-	/* check command was from a channel. */
-	if (!cmdparams->channel) {
-		irc_prefmsg (tvs_bot, cmdparams->source, "QS Command is used in Channel Only");
-		return NS_FAILURE;
-	}
 	/* find if its our channel. */
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc) {
@@ -169,11 +154,6 @@ int tvs_cmd_sp (CmdParams* cmdparams)
 	int ps=0;
 	TriviaChan *tc;
 
-	/* check command was from a channel. */
-	if (!cmdparams->channel) {
-		irc_prefmsg (tvs_bot, cmdparams->source, "SETPOINTS Command is used in Channel Only");
-		return NS_FAILURE;
-	}
 	/* find if its our channel. */
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc) {
@@ -203,11 +183,6 @@ int tvs_cmd_pc (CmdParams* cmdparams)
 {
 	TriviaChan *tc;
 
-	/* check command was from a channel. */
-	if (!cmdparams->channel) {
-		irc_prefmsg (tvs_bot, cmdparams->source, "PUBLIC Command is used in Channel Only");
-		return NS_FAILURE;
-	}
 	/* find if its our channel. */
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc) {
@@ -239,11 +214,6 @@ int tvs_cmd_opchan (CmdParams* cmdparams)
 {
 	TriviaChan *tc;
 
-	/* check command was from a channel. */
-	if (!cmdparams->channel) {
-		irc_prefmsg (tvs_bot, cmdparams->source, "OPCHAN Command is used in Channel Only");
-		return NS_FAILURE;
-	}
 	/* find if its our channel. */
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc) {
@@ -279,11 +249,6 @@ int tvs_cmd_opchan (CmdParams* cmdparams)
 int tvs_cmd_resetscores (CmdParams* cmdparams) {
 	TriviaChan *tc;
 
-	/* check command was from a channel. */
-	if (!cmdparams->channel) {
-		irc_prefmsg (tvs_bot, cmdparams->source, "RESETSCORES Command is used in Channel Only");
-		return NS_FAILURE;
-	}
 	/* find if its our channel. */
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc) {

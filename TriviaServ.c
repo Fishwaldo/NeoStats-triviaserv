@@ -84,13 +84,13 @@ static bot_cmd tvs_commands[]=
 	{"CATLIST",	tvs_catlist,		0, 	0,		tvs_help_catlist,	tvs_help_catlist_oneline },
 	{"SCORE",	tvs_cmd_score,		0, 	0,		NULL,			NULL},
 	{"HINT",	tvs_cmd_hint,		0, 	0,		NULL,			NULL},
-	{"START",	tvs_cmd_start,		0, 	0,		tvs_help_start,		tvs_help_start_oneline},
-	{"STOP",	tvs_cmd_stop,		0, 	0,		tvs_help_stop,		tvs_help_stop_oneline},
-	{"QS",		tvs_cmd_qs,		1, 	0,		tvs_help_qs,		tvs_help_qs_oneline},
-	{"SETPOINTS",	tvs_cmd_sp,		1, 	0,		tvs_help_sp,		tvs_help_sp_oneline},
-	{"PUBLIC",	tvs_cmd_pc,		1, 	0,		tvs_help_pc,		tvs_help_pc_oneline},
-	{"OPCHAN",	tvs_cmd_opchan,		1, 	0,		tvs_help_opchan,	tvs_help_opchan_oneline},
-	{"RESETSCORES",	tvs_cmd_resetscores,	1, 	0,		tvs_help_resetscores,	tvs_help_resetscores_oneline},
+	{"START",	tvs_cmd_start,		0, 	0,		tvs_help_start,		tvs_help_start_oneline,		CMD_FLAG_CHANONLY},
+	{"STOP",	tvs_cmd_stop,		0, 	0,		tvs_help_stop,		tvs_help_stop_oneline,		CMD_FLAG_CHANONLY},
+	{"QS",		tvs_cmd_qs,		1, 	0,		tvs_help_qs,		tvs_help_qs_oneline,		CMD_FLAG_CHANONLY},
+	{"SETPOINTS",	tvs_cmd_sp,		1, 	0,		tvs_help_sp,		tvs_help_sp_oneline,		CMD_FLAG_CHANONLY},
+	{"PUBLIC",	tvs_cmd_pc,		1, 	0,		tvs_help_pc,		tvs_help_pc_oneline,		CMD_FLAG_CHANONLY},
+	{"OPCHAN",	tvs_cmd_opchan,		1, 	0,		tvs_help_opchan,	tvs_help_opchan_oneline,	CMD_FLAG_CHANONLY},
+	{"RESETSCORES",	tvs_cmd_resetscores,	1, 	0,		tvs_help_resetscores,	tvs_help_resetscores_oneline,	CMD_FLAG_CHANONLY},
 	{NULL,		NULL,			0, 	0,		NULL, 			NULL}
 };
 
