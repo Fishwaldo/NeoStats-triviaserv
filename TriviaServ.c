@@ -39,6 +39,11 @@
 #include <sys/param.h>
 #endif
 
+#ifdef WIN32
+void *(*old_malloc)(size_t);
+void (*old_free) (void *);
+#endif
+
 const char *questpath = "data/TSQuestions/";
 
 static int tvs_get_settings();
@@ -271,13 +276,16 @@ int ChanPrivmsg (CmdParams* cmdparams)
 {
 	TriviaChan *tc;
 	char *tmpbuf;
+	int len;
 	
 	/* find if its our channel. */
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc) {
 		return NS_FAILURE;
 	}
-	tmpbuf = joinbuf(cmdparams->av, cmdparams->ac, 1);
+	len = strlen( cmdparams->param ) + 1;
+	tmpbuf = ns_malloc( len );
+	strlcpy( tmpbuf, cmdparams->param, len );
 	strip_mirc_codes(tmpbuf);
 	tvs_testanswer(cmdparams->source, tc, tmpbuf);
 	ns_free (tmpbuf);
@@ -347,6 +355,12 @@ ModuleEvent module_events[] = {
  */
 int ModInit( void )
 {
+#ifdef WIN32
+	old_malloc = pcre_malloc;
+	old_free = pcre_free;
+	pcre_malloc = os_malloc;
+	pcre_free = os_free;
+#endif
 	TriviaServ.Questions = 0;
 	/* XXX todo */
 	TriviaServ.HintRatio = 3;
@@ -410,6 +424,10 @@ int ModFini( void )
 		ns_free (qf);
 		lnodes = ln2;
 	}
+#ifdef WIN32
+	pcre_malloc = old_malloc;
+	pcre_free = old_free;
+#endif
 	return NS_SUCCESS;
 }
 
@@ -432,7 +450,6 @@ char* filelist[] = {
 "acronyms1.qns",
 "ads1.qns",
 "algebra1.qns",
-#if 0
 "animals1.qns",
 "authors1.qns",
 "babynames1.qns",
@@ -486,7 +503,6 @@ char* filelist[] = {
 "unscramble1.qns",
 "us1.qns",
 "uselessfactsandtrivia1.qns",
-#endif
 NULL
 };
 #endif

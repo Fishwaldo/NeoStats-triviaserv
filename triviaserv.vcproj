@@ -158,6 +158,9 @@
 		<File
 			RelativePath=".\modconfig.h.in">
 		</File>
+		<File
+			RelativePath=".\Relnotes">
+		</File>
 	</Files>
 	<Globals>
 	</Globals>
