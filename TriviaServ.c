@@ -33,6 +33,9 @@
 #include <strings.h>
 #include <error.h>
 
+
+
+
 static void tvs_get_settings();
 static void tvs_parse_questions();
 static int tvs_about();
@@ -55,7 +58,9 @@ static void tvs_set(char *, TriviaChan *, char **, int );
 
 static void tvs_newquest(TriviaChan *);
 static void tvs_ansquest(TriviaChan *);
-
+static int tvs_doregex(Questions *, char *);
+static void tvs_testanswer(char *origin, TriviaChan *tc, char *line);
+static void tvs_addpoints(char *who, TriviaChan *tc);
 
 static ModUser *tvs_bot;
 
@@ -188,6 +193,7 @@ static int tvs_chans(User *u, char **av, int ac) {
 int __ChanMessage(char *origin, char **argv, int argc)
 {
 	TriviaChan *tc;
+	char *tmpbuf;
 	
 	/* find if its our channel. */
 	tc = FindTChan(argv[0]);
@@ -227,7 +233,10 @@ int __ChanMessage(char *origin, char **argv, int argc)
 		return NS_SUCCESS;
 	}
 	/* XXX if we are here, it could be a answer, process it. */	
-	printf("%s\n", argv[1]);
+	tmpbuf = joinbuf(argv, argc, 1);
+	strip_mirc_codes(tmpbuf);
+	tvs_testanswer(origin, tc, tmpbuf);
+	free(tmpbuf);
 	return 1;
 }
 
@@ -610,13 +619,12 @@ void tvs_processtimer() {
 			}
 			/* if we are here, its a current question. */
 			timediff = me.now - tc->lastquest;
-printf("%ld\n", timediff);
 			if (timediff > tc->questtime) {
 				/* timeout, answer the question */
 				tvs_ansquest(tc);
 				continue;
 			}
-			if (timediff < 15) {
+			if ((tc->questtime - timediff) < 15) {
 				privmsg(tc->name, s_TriviaServ, "Less than 15 Seconds Remaining, Hurry up!");
 				continue;
 			}
@@ -627,7 +635,6 @@ printf("%ld\n", timediff);
 
 void tvs_newquest(TriviaChan *tc) {
 	int qn;
-	int i;
 	lnode_t *qnode;
 	Questions *qe;
 	QuestionFiles *qf;
@@ -664,20 +671,122 @@ restartquestionselection:
 		chanalert(s_TriviaServ, "Question file Error in %s: %s", qf->filename, strerror(errno));
 		return;
 	}
-	tvs_doregex(qe, tmpbuf);	
-	privmsg(tc->name, s_TriviaServ, "New Question %d: %s", qn, tmpbuf);
+	if (tvs_doregex(qe, tmpbuf) == NS_FAILURE) {
+		chanalert(s_TriviaServ, "Question Parsing Failed. Please Check Log File");
+		return;
+	}	
+	tc->curquest = qe;
+	privmsg(tc->name, s_TriviaServ, "Fingers on the keyboard, Here comes the Next Question!");
+	privmsg(tc->name, s_TriviaServ, "%s", qe->question);
 	tc->lastquest = me.now;
 
 }
 
 void tvs_ansquest(TriviaChan *tc) {
-	privmsg(tc->name, s_TriviaServ, "Answer");
+	Questions *qe;
+	qe = tc->curquest;
+	privmsg(tc->name, s_TriviaServ, "Times Up! The Answer was: \2%s\2", qe->answer);
+	/* so we don't chew up memory too much */
+	free(qe->regexp);
 	tc->curquest = NULL;
 }
 
-void tvs_doregex(Questions *qe, char *buf) {
+int tvs_doregex(Questions *qe, char *buf) {
+	pcre *re;
+	const char *error;
+	int errofset;
+	int rc;
+	int ovector[9];
+	const char **subs;
+	int gotanswer;
+	char tmpbuf[REGSIZE], tmpbuf1[REGSIZE];
+	
+	
+	re = pcre_compile(TVSREXEXP, 0, &error, &errofset, NULL);
+	if (!re) {
+		nlog(LOG_WARNING, LOG_MOD, "Warning, PCRE compile failed: %s at %d", error, errofset);
+		return NS_FAILURE;
+	}
+	gotanswer = 0;
+	/* strip any newlines out */
+	strip(buf);
+	/* we copy the entire thing into the question struct, but it will end up as only the question after pcre does its thing */
+	strlcpy(qe->question, buf, QUESTSIZE);
+	bzero(tmpbuf, ANSSIZE);
+	/* no, its not a infinate loop */
+	while (1) {
+	
+		rc = pcre_exec(re, NULL, qe->question, strlen(qe->question), 0, 0, ovector, 9);
+		if (rc <= 0) {
+			if ((rc == PCRE_ERROR_NOMATCH) && (gotanswer > 0)) {
+				/* we got something in q & a, so proceed. */
+				ircsnprintf(tmpbuf1, REGSIZE, ".*(?i)(?:%s).*", tmpbuf);
+				printf("regexp will be %s\n", tmpbuf1);
+				qe->regexp = pcre_compile(tmpbuf1, 0, &error, &errofset, NULL);
+				if (qe->regexp == NULL) {
+					/* damn damn damn, our constructed regular expression failed */
+					nlog(LOG_WARNING, LOG_MOD, "pcre_compile_answer failed: %s at %d", error, errofset);
+					free(re);
+					return NS_FAILURE;
+				}
+				free(re);
+				return NS_SUCCESS;
+			} 
+			/* some other error occured. Damn. */
+			nlog(LOG_WARNING, LOG_MOD, "pcre_exec failed. %s - %d", qe->question, rc);
+			free(re);
+			return NS_FAILURE;
+		} else if (rc == 3) {
+			gotanswer++;
+			/* split out the regexp */
+			pcre_get_substring_list(buf, ovector, rc, &subs);
+			/* we pull one answer off at a time, so we place the question (and maybe another answer) into question again for further processing later */
+			strlcpy(qe->question, subs[1], QUESTSIZE);
+			/* if this is the first answer, this is the one we display in the channel */
+			if (strlen(qe->answer) == 0) {
+				strlcpy(qe->answer, subs[2], ANSSIZE);
+			}
+			/* tmpbuf will hold our eventual regular expression to find the answer in the channel */
+			if (strlen(tmpbuf) == 0) {
+				ircsnprintf(tmpbuf, ANSSIZE, "%s", subs[2]);
+			} else {
+				ircsnprintf(tmpbuf1, ANSSIZE, "%s|%s", tmpbuf, subs[2]);
+				strlcpy(tmpbuf, tmpbuf1, ANSSIZE);
+			}
+			/* free our subs */
+			pcre_free_substring_list(subs);
+		}
+	}		
+	return NS_SUCCESS;		
+	
+}
 
+void tvs_testanswer(char *origin, TriviaChan *tc, char *line) {
+	Questions *qe;
+	int rc;
+	
+	qe = tc->curquest;
+	if (qe == NULL) 
+		return;
+	
+	nlog(LOG_DEBUG3, LOG_MOD, "Testing Answer on regexp: %s", line);
+	rc = pcre_exec(qe->regexp, NULL, line, strlen(line), 0, 0, NULL, 0);
+	if (rc >= 0) {
+		/* we got a match! */
+		privmsg(tc->name, s_TriviaServ, "Correct! %s got the answer: %s", origin, qe->answer);
+		tvs_addpoints(origin, tc);
+		tc->curquest = NULL;
+		free(qe->regexp);
+		return;
+	} else if (rc == -1) {
+		/* no match, return silently */
+		return;
+	} else if (rc < 0) {
+		nlog(LOG_WARNING, LOG_MOD, "pcre_exec in tvs_testanswer failed: %s - %d", line, rc);
+		return;
+	}
+}
 
-
+void tvs_addpoints(char *who, TriviaChan *tc) {
 
 }

@@ -27,6 +27,13 @@
 #include "neostats.h"
 #include "modconfig.h"
 
+#define TVSREXEXP "^(.*)\\*(.*)$"
+#define QUESTSIZE 500
+#define ANSSIZE 200
+#define REGSIZE ANSSIZE + 20
+
+
+
 struct TriviaServ {
 	char user[MAXUSER]; 
 	char host[MAXHOST]; 
@@ -47,8 +54,9 @@ struct Quests {
 	long qn;
 	long offset;
 	QuestionFiles *QF;
-	char *question;
-	char *answer;
+	char question[QUESTSIZE];
+	char answer[ANSSIZE];
+	pcre *regexp;
 	int hints;
 };
 
