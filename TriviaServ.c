@@ -61,6 +61,7 @@ static void tvs_ansquest(TriviaChan *);
 static int tvs_doregex(Questions *, char *);
 static void tvs_testanswer(char *origin, TriviaChan *tc, char *line);
 static void do_hint(TriviaChan *tc);
+static void obscure_question(TriviaChan *tc);
 static ModUser *tvs_bot;
 
 
@@ -684,7 +685,8 @@ restartquestionselection:
 	}	
 	tc->curquest = qe;
 	privmsg(tc->name, s_TriviaServ, "Fingers on the keyboard, Here comes the Next Question!");
-	privmsg(tc->name, s_TriviaServ, "%s", qe->question);
+//	privmsg(tc->name, s_TriviaServ, "%s", qe->question);
+	obscure_question(tc);
 	tc->lastquest = me.now;
 
 }
@@ -851,4 +853,38 @@ void do_hint(TriviaChan *tc) {
    qe->hints++;
    privmsg(tc->name, s_TriviaServ, "Hint %d: %s", qe->hints, out);
    free(out);
+}
+
+void obscure_question(TriviaChan *tc) {
+   char *out;
+   Questions *qe;
+   int random, j, i;
+
+   if (tc->curquest == NULL) {
+	nlog(LOG_WARNING, LOG_MOD, "curquest is missing for obscure_answer");
+	return;
+   }
+
+   qe = tc->curquest;
+      
+//   out = strdup(qe->answer);
+   out = malloc(BUFSIZE+1);
+   bzero(out, BUFSIZE+1);
+   strlcpy(out, "\0034,1", BUFSIZE);
+   for(i=0;i < (int)strlen(qe->question);i++) {
+      if(qe->question[i] == ' ') {
+	 random =  34 + (int) ((double)rand() * (91) / (RAND_MAX+1.0));
+	 if (random == 92) random = 65;
+	 strncat(out, "\0031,1", BUFSIZE);
+	 out[strlen(out)-1] = random;
+	 strncat(out, "\0034,1", BUFSIZE);
+      } else {
+         out[strlen(out)-1] = qe->question[i];
+//	 strncat(out, (char *)qe->question[i], BUFSIZE);
+      }
+      
+   }
+   privmsg(tc->name, s_TriviaServ, "%s", out);
+
+
 }
