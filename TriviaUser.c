@@ -56,11 +56,23 @@ void tvs_addpoints(Client *u, TriviaChan *tc)
 	irc_chanprivmsg (tvs_bot, tc->name, "%s now has %d Points", u->name, ts->score);
 }	
 
-int DelUser (CmdParams* cmdparams) 
+int QuitUser (CmdParams* cmdparams) 
 {
 	TriviaScore *ts;
 
 	ts = (TriviaScore *) GetUserModValue (cmdparams->source);
+	if (ts) {
+		/* XXX Save User */
+		ns_free(ts);
+	}
+	return NS_SUCCESS;
+}
+
+int KillUser (CmdParams* cmdparams) 
+{
+	TriviaScore *ts;
+
+	ts = (TriviaScore *) GetUserModValue (cmdparams->target);
 	if (ts) {
 		/* XXX Save User */
 		ns_free(ts);

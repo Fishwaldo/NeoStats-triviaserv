@@ -101,5 +101,6 @@ extern const char *tvs_help_catlist[];
 extern const char tvs_help_catlist_oneline[];
 /* TriviaUser.c */
 void tvs_addpoints(Client *u, TriviaChan *tc);
-int DelUser(CmdParams* cmdparams);
+int QuitUser(CmdParams* cmdparams);
+int KillUser(CmdParams* cmdparams);
 #endif /* TRIVIASERV_H */
