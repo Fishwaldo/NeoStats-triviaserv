@@ -381,7 +381,7 @@ void ModFini()
 		tc = hnode_get(hnodes);
 		if (tc->c) {
 			c = tc->c;
-			c->moddata[TriviaServ.modnum] = NULL;
+			set_channel_moddata (c, NULL);
 		}
 		list_destroy_nodes(tc->qfl);
 		hash_scan_delete(tch, hnodes);
@@ -613,10 +613,7 @@ TriviaChan *FindTChan(Channel* c)
 	if (!c) {
 		return NULL;
 	}
-	if (c->moddata[TriviaServ.modnum] != NULL) {
-		return (TriviaChan *)c->moddata[TriviaServ.modnum];
-	}
-	return NULL;
+	return (TriviaChan *)get_channel_moddata (c);
 }
 
 TriviaChan *NewTChan(Channel *c) 
@@ -624,28 +621,26 @@ TriviaChan *NewTChan(Channel *c)
 	TriviaChan *tc;
 	hnode_t *tcn;
 	
-	if (c->moddata[TriviaServ.modnum] != NULL) {
+	tc = get_channel_moddata (c);
+	if (tc) {
 		nlog(LOG_WARNING, "Hrm, Chan %s already has a TriviaChanStruct with it", c->name);
-		return (TriviaChan *)c->moddata[TriviaServ.modnum];
+		return tc;
 	}
 	/* ok, first we lookup in the tch hash, to see if this is a channel that we already have a setting for */
 	tcn = hash_lookup(tch, c->name);
-	if (tcn == NULL) {
-		/* ok, create and insert into hash */
-		tc = ns_calloc (sizeof(TriviaChan));
-		strlcpy (tc->name, c->name, MAXCHANLEN);
-		tc->c = c;
-		/* XXX */
-		tc->questtime = 60;
-		c->moddata[TriviaServ.modnum] = tc;
-		tc->qfl = list_create(-1);
-		tcn = hnode_create(tc);
-		hash_insert(tch, tcn, tc->name);
-		dlog (DEBUG1, "Created New TC entry for Channel %s", c->name);
-	} else {
+	if (tcn) {
 		return NULL;
 	}
-	tc = hnode_get(tcn);
+	/* ok, create and insert into hash */
+	tc = ns_calloc (sizeof(TriviaChan));
+	strlcpy (tc->name, c->name, MAXCHANLEN);
+	tc->c = c;
+	/* XXX */
+	tc->questtime = 60;
+	set_channel_moddata (c, tc);
+	tc->qfl = list_create(-1);
+	hnode_create_insert (tch, tc, tc->name);
+	dlog (DEBUG1, "Created New TC entry for Channel %s", c->name);
 	return tc;
 }
 
@@ -654,12 +649,12 @@ TriviaChan *OfflineTChan(Channel *c) {
 	if (!c) {
 		return NULL;
 	}
-	if (c->moddata[TriviaServ.modnum] == NULL) {
+	tc = get_channel_moddata (c);
+	if (tc == NULL) {
 		nlog(LOG_WARNING, "TriviaChan %s already marked offline?!!?!", c->name);
 		return NULL;
 	}
-	tc = c->moddata[TriviaServ.modnum];
-	c->moddata[TriviaServ.modnum] = NULL;
+	set_channel_moddata (c, NULL);
 	tc->c = NULL;
 	tc->active = 0;
 	tc->curquest = NULL;
@@ -673,15 +668,16 @@ TriviaChan *OnlineTChan(Channel *c) {
 	if (!c) {
 		return NULL;
 	}
-	if (c->moddata[TriviaServ.modnum] != NULL) {
+	tc = get_channel_moddata (c);
+	if (tc) {
 		nlog(LOG_WARNING, "TriviaChan %s already marked online?!?!", c->name);
-		return (TriviaChan *)c->moddata[TriviaServ.modnum];
+		return tc;
 	}
 	tcn = hash_lookup(tch, c->name);
 	if (tcn != NULL) {
 		tc = hnode_get(tcn);
 		tc->c = c;
-		c->moddata[TriviaServ.modnum] = tc;
+		set_channel_moddata (c, tc);
 		irc_join (tvs_bot, tc->name, 0);
 		return tc;
 	}
