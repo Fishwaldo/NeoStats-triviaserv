@@ -416,13 +416,13 @@ int ModFini( void )
 #ifndef WIN32
 int file_select (const struct direct *entry) {
 	char *ptr;
-	if ((strcasecmp(entry->d_name, ".")==0) || (strcasecmp(entry->d_name, "..")==0)) {
+	if ((ircstrcasecmp(entry->d_name, ".")==0) || (ircstrcasecmp(entry->d_name, "..")==0)) {
 		return 0;
 	}
 	/* check filename extension */
 	ptr = rindex(entry->d_name, '.');
 	if ((ptr != NULL) && 
-		(strcasecmp(ptr, ".qns") == 0)) {
+		(ircstrcasecmp(ptr, ".qns") == 0)) {
 			return NS_SUCCESS;
 	}
 	return 0;	
@@ -496,7 +496,7 @@ int LoadChannel( void *data )
 	TriviaChan *tc;
 
 	tc = ns_calloc (sizeof(TriviaChan));
-	memcpy (tc, data, sizeof(TriviaChan));
+	os_memcpy (tc, data, sizeof(TriviaChan));
 	tc->qfl = list_create(-1);
 	hnode_create_insert(tch, tc, tc->name);
 	dlog (DEBUG1, "Loaded TC entry for Channel %s", tc->name);
@@ -705,15 +705,15 @@ int NewChan(CmdParams* cmdparams)
 int find_cat_name(const void *catnode, const void *name) 
 {
 	QuestionFiles *qf = (void *)catnode;
-	return (strcasecmp(qf->name, name));
+	return (ircstrcasecmp(qf->name, name));
 }
 
 void tvs_set(CmdParams* cmdparams, TriviaChan *tc) 
 {
 	lnode_t *lnode;
 	QuestionFiles *qf;
-	if (cmdparams->ac >= 3 && !strcasecmp(cmdparams->av[0], "CATEGORY")) {
-		if (cmdparams->ac == 5 && !strcasecmp(cmdparams->av[1], "ADD")) {
+	if (cmdparams->ac >= 3 && !ircstrcasecmp(cmdparams->av[0], "CATEGORY")) {
+		if (cmdparams->ac == 5 && !ircstrcasecmp(cmdparams->av[1], "ADD")) {
 			lnode = list_find(qfl, cmdparams->av[2], find_cat_name);
 			if (lnode) {
 				if (list_find(tc->qfl, cmdparams->av[2], find_cat_name)) {
@@ -731,7 +731,7 @@ void tvs_set(CmdParams* cmdparams, TriviaChan *tc)
 				irc_prefmsg (tvs_bot, cmdparams->source, "Can't Find Category %s. Try /msg %s catlist", cmdparams->av[2], tvs_bot->name);
 				return;
 			}
-		} else if (cmdparams->ac == 5 && !strcasecmp(cmdparams->av[1], "DEL")) {
+		} else if (cmdparams->ac == 5 && !ircstrcasecmp(cmdparams->av[1], "DEL")) {
 			lnode = list_find(tc->qfl, cmdparams->av[2], find_cat_name);
 			if (lnode) {
 				list_delete(tc->qfl, lnode);
@@ -745,7 +745,7 @@ void tvs_set(CmdParams* cmdparams, TriviaChan *tc)
 				irc_prefmsg (tvs_bot, cmdparams->source, "Couldn't find Category %s in the list. Try !set category list", cmdparams->av[2]);
 				return;
 			}
-		} else if (!strcasecmp(cmdparams->av[1], "LIST")) {
+		} else if (!ircstrcasecmp(cmdparams->av[1], "LIST")) {
 			if (!list_isempty(tc->qfl)) {
 				irc_prefmsg (tvs_bot, cmdparams->source, "Categories for this Channel are:");
 				lnode = list_first(tc->qfl);
@@ -760,7 +760,7 @@ void tvs_set(CmdParams* cmdparams, TriviaChan *tc)
 				irc_prefmsg (tvs_bot, cmdparams->source, "Using Random Categories for this channel");
 				return;
 			}
-		} else if (!strcasecmp(cmdparams->av[1], "RESET")) {
+		} else if (!ircstrcasecmp(cmdparams->av[1], "RESET")) {
 			while (!list_isempty(tc->qfl)) {
 				list_destroy_nodes(tc->qfl);
 			}
@@ -951,7 +951,7 @@ int tvs_doregex(Questions *qe, char *buf) {
 	qe->question = ns_calloc (QUESTSIZE);
 	qe->answer = ns_calloc (ANSSIZE);
 	strlcpy(qe->question, buf, QUESTSIZE);
-	memset (tmpbuf, 0, ANSSIZE);
+	os_memset (tmpbuf, 0, ANSSIZE);
 	/* no, its not a infinate loop */
 	while (1) {	
 		rc = pcre_exec(re, NULL, qe->question, strlen(qe->question), 0, 0, ovector, 9);
@@ -959,7 +959,7 @@ int tvs_doregex(Questions *qe, char *buf) {
 			if ((rc == PCRE_ERROR_NOMATCH) && (gotanswer > 0)) {
 				/* we got something in q & a, so proceed. */
 				ircsnprintf(tmpbuf1, REGSIZE, ".*(?i)(?:%s).*", tmpbuf);
-				printf("regexp will be %s\n", tmpbuf1);
+				dlog (DEBUG3, "regexp will be %s\n", tmpbuf1);
 				qe->regexp = pcre_compile(tmpbuf1, 0, &error, &errofset, NULL);
 				if (qe->regexp == NULL) {
 					/* damn damn damn, our constructed regular expression failed */
@@ -1045,7 +1045,7 @@ void do_hint(TriviaChan *tc)
 		return;
 	}
 	qe = tc->curquest;
-	out = strdup(qe->answer);
+	out = sstrdup(qe->answer);
 	num = strlen(qe->answer) / TriviaServ.HintRatio;
 	if (qe->hints > 0) {
 		num = num * qe->hints;
@@ -1088,11 +1088,11 @@ void obscure_question(TriviaChan *tc)
 	 	random = random + 15;
 	 }
 	 /* insert same background/foreground color here */
-	 strncat(out, "\00301,01", BUFSIZE);
+	 strlcat(out, "\00301,01", BUFSIZE);
 	 /* insert random char here */
 	 out[strlen(out)] = random;
 	 /* reset color back to standard for next word. */
-	 strncat(out, "\00304,01", BUFSIZE);
+	 strlcat(out, "\00304,01", BUFSIZE);
       } else {
          /* just insert the char, its a word */
          out[strlen(out)] = qe->question[i];
@@ -1103,10 +1103,10 @@ void obscure_question(TriviaChan *tc)
    ns_free (out);
 }
 
-#ifdef WIN32 /* temp */
-
-int main (int argc, char **argv)
+#ifdef WIN32
+/* temp */
+int main( int argc, char *argv[] )
 {
 	return 0;
 }
-#endif
+#endif /* WIN32 */
