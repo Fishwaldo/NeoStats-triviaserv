@@ -867,7 +867,6 @@ void obscure_question(TriviaChan *tc) {
 
    qe = tc->curquest;
       
-//   out = strdup(qe->answer);
    out = malloc(BUFSIZE+1);
    bzero(out, BUFSIZE+1);
    strlcpy(out, "\0034,1", BUFSIZE);
@@ -875,16 +874,20 @@ void obscure_question(TriviaChan *tc) {
       if(qe->question[i] == ' ') {
 	 random =  34 + (int) ((double)rand() * (91) / (RAND_MAX+1.0));
 	 if (random == 92) random = 65;
+	 /* insert same background/foreground color here */
 	 strncat(out, "\0031,1", BUFSIZE);
-	 out[strlen(out)-1] = random;
+	 /* insert random char here */
+	 out[strlen(out)] = random;
+	 /* reset color back to standard for next word. */
 	 strncat(out, "\0034,1", BUFSIZE);
       } else {
-         out[strlen(out)-1] = qe->question[i];
-//	 strncat(out, (char *)qe->question[i], BUFSIZE);
+         /* just insert the char, its a word */
+         out[strlen(out)] = qe->question[i];
       }
       
    }
    privmsg(tc->name, s_TriviaServ, "%s", out);
+   free(out);
 
 
 }
