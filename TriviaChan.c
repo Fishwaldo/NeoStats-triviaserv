@@ -30,7 +30,7 @@
 #include "neostats.h"	/* Neostats API */
 #include "TriviaServ.h"
 
-int LoadChannel( void *data )
+int LoadChannel( void *data, int size )
 {
 	TriviaChan *tc;
 

@@ -125,7 +125,7 @@ int tvs_catlist(CmdParams* cmdparams);
 int tvs_chans(CmdParams* cmdparams);
 
 /* TriviaChan.c */
-int LoadChannel( void *data );
+int LoadChannel( void *data, int size );
 TriviaChan *NewTChan(Channel *c);
 TriviaChan *OfflineTChan(Channel *c);
 TriviaChan *OnlineTChan(Channel *c);
