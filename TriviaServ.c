@@ -119,7 +119,7 @@ int tvs_cmd_start (CmdParams* cmdparams)
 	if (!tc) {
 		return NS_FAILURE;
 	}
-	if ((tc->publiccontrol == 1) && (!is_chanop(cmdparams->channel->name, cmdparams->source->name))) {
+	if ((tc->publiccontrol == 1) && (!IsChanOp(cmdparams->channel->name, cmdparams->source->name))) {
 		/* nope, get lost, silently exit */
 		return NS_FAILURE;
 	}
@@ -137,7 +137,7 @@ int tvs_cmd_stop (CmdParams* cmdparams)
 	if (!tc) {
 		return NS_FAILURE;
 	}
-	if ((tc->publiccontrol == 1) && (!is_chanop(cmdparams->channel->name, cmdparams->source->name))) {
+	if ((tc->publiccontrol == 1) && (!IsChanOp(cmdparams->channel->name, cmdparams->source->name))) {
 		/* nope, get lost, silently exit */
 		return NS_FAILURE;
 	}
@@ -160,7 +160,7 @@ int tvs_cmd_sset (CmdParams* cmdparams)
 		return NS_FAILURE;
 	}
 	/* finally, these ones are restricted always */
-	if (!is_chanop(cmdparams->channel->name, cmdparams->source->name)) {
+	if (!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) {
 		/* nope, get lost */
 		return NS_FAILURE;
 	}
@@ -211,7 +211,7 @@ static int tvs_chans(CmdParams* cmdparams) {
 		if (cmdparams->ac < 3) {
 			return NS_ERR_SYNTAX_ERROR;
 		}
-		c = find_chan (cmdparams->av[1]);
+		c = find_channel (cmdparams->av[1]);
 		if (!c) {
 			irc_prefmsg (tvs_bot, cmdparams->source, "Error: Channel must be online");
 			return NS_FAILURE;
@@ -322,7 +322,7 @@ int ModSynch (void)
 	hash_scan_begin(&hs, tch);
 	while ((hnodes = hash_scan_next(&hs)) != NULL) {
 		tc = hnode_get(hnodes);
-		c = find_chan (tc->name);
+		c = find_channel (tc->name);
 		if (c) {
 			OnlineTChan(c);
 		}
@@ -491,12 +491,20 @@ NULL
 };
 #endif
 
+void LoadChannel( void *data )
+{
+	TriviaChan *tc;
+
+	tc = ns_calloc (sizeof(TriviaChan));
+	memcpy (tc, data, sizeof(TriviaChan));
+	tc->qfl = list_create(-1);
+	hnode_create_insert(tch, tc, tc->name);
+	dlog (DEBUG1, "Loaded TC entry for Channel %s", tc->name);
+}
+
 int tvs_get_settings() {
 	QuestionFiles *qf;
 	lnode_t *node;
-	char **row;
-	TriviaChan *tc;
-	hnode_t *tcn;
 	int i, count = 0;
 #ifndef WIN32
 	struct direct **files;
@@ -528,21 +536,7 @@ int tvs_get_settings() {
 		node = lnode_create(qf);
 		list_append(qfl, node);
 	}
-	/* load the channel list */
-	if (GetTableData("Channel", &row) > 0) {
-		for (i = 0; row[i] != NULL; i++) {
-			tc = ns_calloc (sizeof(TriviaChan));
-			ircsnprintf(tc->name, MAXCHANLEN, row[i]);
-			GetData((void *)&tc->publiccontrol, CFGINT, "Channel", row[i], "Public");
-			if (GetData((void *)&tc->questtime, CFGINT, "Channel", row[i], "Timeout") < 0) {
-				tc->questtime = 60;
-			}
-			tc->qfl = list_create(-1);
-			tcn = hnode_create(tc);
-			hash_insert(tch, tcn, tc->name);
-			dlog (DEBUG1, "Loaded TC entry for Channel %s", tc->name);
-		}
-	}
+	DBAFetchRows ("Channel", LoadChannel);
 	return NS_SUCCESS;
 };
 
@@ -681,12 +675,12 @@ int DelTChan(char *chan) {
 	if (hnode) {
 		tc = hnode_get(hnode);
 		/* part the channel if its online */
-		if ((TriviaChan *)GetChannelModValue (tc->c)) OfflineTChan(find_chan (tc->name));
+		if ((TriviaChan *)GetChannelModValue (tc->c)) OfflineTChan(find_channel (tc->name));
 		hash_delete(tch, hnode);
 		list_destroy_nodes(tc->qfl);
 		ns_free (tc);
 		hnode_destroy(hnode);
-		DelRow("Channel", chan);
+		DBADelete("Channel", chan);
 		return NS_SUCCESS;
 	}
 	return NS_FAILURE;
@@ -694,8 +688,7 @@ int DelTChan(char *chan) {
 
 int SaveTChan (TriviaChan *tc) 
 {
-	SetData((void *)tc->publiccontrol, CFGINT, "Channel", tc->name, "Public");
-	SetData((void *)&tc->questtime, CFGINT, "Channel", tc->name, "Timeout");
+	DBAStore ("Channel", tc->name, tc, sizeof (TriviaChan));
 	/* XXX Save Category List */
 	return NS_SUCCESS;
 }
