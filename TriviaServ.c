@@ -416,11 +416,3 @@ int tvs_processtimer(void)
 	}
 	return NS_SUCCESS;
 }
-
-#ifdef WIN32
-/* temp */
-int main( int argc, char *argv[] )
-{
-	return 0;
-}
-#endif /* WIN32 */
