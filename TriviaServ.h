@@ -45,6 +45,7 @@ struct TriviaServ {
 	int isonline;
 	int use_exc;
 	int modnum;
+	int HintRatio;
 } TriviaServ;
 
 struct QuestFile {

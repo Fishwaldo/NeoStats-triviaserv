@@ -60,7 +60,7 @@ static void tvs_newquest(TriviaChan *);
 static void tvs_ansquest(TriviaChan *);
 static int tvs_doregex(Questions *, char *);
 static void tvs_testanswer(char *origin, TriviaChan *tc, char *line);
-
+static void do_hint(TriviaChan *tc);
 static ModUser *tvs_bot;
 
 
@@ -299,7 +299,8 @@ int __ModInit(int modnum, int apiver)
 	strlcpy(s_TriviaServ, "TriviaServ", MAXNICK);
 	TriviaServ.isonline = 0;
 	TriviaServ.modnum = modnum;
-	
+	/* XXX todo */
+	TriviaServ.HintRatio = 3;
 	ql = list_create(-1);
 	qfl = list_create(-1);
 	tch = hash_create(-1, 0, 0);
@@ -633,7 +634,8 @@ void tvs_processtimer() {
 				privmsg(tc->name, s_TriviaServ, "Less than 15 Seconds Remaining, Hurry up!");
 				continue;
 			}
-			privmsg(tc->name, s_TriviaServ, "Check");
+			do_hint(tc);
+//			privmsg(tc->name, s_TriviaServ, "Check");
 		}
 	}
 }
@@ -737,6 +739,7 @@ int tvs_doregex(Questions *qe, char *buf) {
 				free(re);
 				/* XXXX Random Scores? */
 				qe->points = 10;
+				qe->hints = 0;
 				return NS_SUCCESS;
 			} 
 			/* some other error occured. Damn. */
@@ -796,3 +799,56 @@ void tvs_testanswer(char *origin, TriviaChan *tc, char *line) {
 	}
 }
 
+/* The following came from the blitzed TriviaBot. 
+ * Credit goes to Andy for this function
+*/
+
+void do_hint(TriviaChan *tc) {
+   char *out;
+   Questions *qe;
+   int random, num, i;
+ 
+ 
+   if (tc->curquest == NULL) {
+	nlog(LOG_WARNING, LOG_MOD, "curquest is missing for hint");
+	return;
+   }
+#if 0
+   srand(( unsigned)time(NULL));
+
+	/* answer is too small */
+   if((int) strlen(hintanswer) < config->GAME_MinHint) {
+      client->privmsg(config->IRC_Channel, config->TEXT_GAME_Toosmall);
+      return;  
+    }
+#endif
+   qe = tc->curquest;
+      
+   out = strdup(qe->answer);
+    
+   num = strlen(qe->answer) / TriviaServ.HintRatio;
+  
+   if (qe->hints > 0) {
+	   num = num * qe->hints;
+   }
+ 
+   for(i=0;i < (int)strlen(out);i++) {
+      if(out[i] != ' ') {
+         out[i] = '-';
+      }
+   }
+
+//   out[0] = qe->answer[0];   
+
+   for(i=0;i < (num-1);i++) {
+       do {
+          random =  (int) ((double)rand() * (strlen(qe->answer) - 1 + 1.0) / (RAND_MAX+1.0));
+       } while(out[random] == ' ' || out[random] != '-');
+
+        out[random] = qe->answer[random];   
+    }
+   
+   qe->hints++;
+   privmsg(tc->name, s_TriviaServ, "Hint %d: %s", qe->hints, out);
+   free(out);
+}
