@@ -1,0 +1,6 @@
+YahtzeeServ Module for NeoStats Changelog.
+Fish (F), Mark (M), DeadNotBuried (D)
+==============================================================================
+3.0.a3-dev
+ - add OPCHAN command for channel ops to set if Trivia gets Channel Op
+   status on joining or not (D)

@@ -232,6 +232,47 @@ int tvs_cmd_pc (CmdParams* cmdparams)
 }
 
 /*
+ * Allows Chanops to set if Bot sets Op on joining Channel or not
+*/
+int tvs_cmd_opchan (CmdParams* cmdparams)
+{
+	TriviaChan *tc;
+
+	/* check command was from a channel. */
+	if (!cmdparams->channel) {
+		irc_prefmsg (tvs_bot, cmdparams->source, "OPCHAN Command is used in Channel Only");
+		return NS_FAILURE;
+	}
+	/* find if its our channel. */
+	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
+	if (!tc) {
+		return NS_FAILURE;
+	}
+	/* finally, these ones are restricted always */
+	if (!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) {
+		/* nope, get lost */
+		return NS_FAILURE;
+	}
+	if (!ircstrcasecmp(cmdparams->av[0], "ON")) {
+		tc->opchan = 1;
+	} else if (!ircstrcasecmp(cmdparams->av[0], "OFF")) {
+		tc->opchan = 0;
+	} else {
+		irc_prefmsg (tvs_bot, cmdparams->source, "OPCHAN can be set to ON or OFF only");
+		return NS_FAILURE;
+	}
+	SaveTChan(tc);
+	/* check if setting changes and op/deop botfinally, these ones are restricted always */
+	if (tc->opchan && !IsChanOp(cmdparams->channel->name, tvs_bot->u->name)) {
+		irc_chanusermode( tvs_bot, cmdparams->channel->name, "+o", tvs_bot->u->name);
+	} else if (!tc->opchan && IsChanOp(cmdparams->channel->name, tvs_bot->u->name)) {
+		irc_chanusermode( tvs_bot, cmdparams->channel->name, "-o", tvs_bot->u->name);
+	}
+	irc_prefmsg (tvs_bot, cmdparams->source, "OPCHAN for %s set to %s", tc->name , tc->opchan ? "On" : "Off");
+	return NS_SUCCESS;
+}
+
+/*
  * Lists all Question Sets / Categories available on the network
 */
 int tvs_catlist(CmdParams* cmdparams) {
@@ -285,7 +326,11 @@ int tvs_chans(CmdParams* cmdparams) {
 		SaveTChan(tc);
 		irc_prefmsg (tvs_bot, cmdparams->source, "Added %s with public control set to %s", tc->name, tc->publiccontrol ? "On" : "Off");
 		CommandReport(tvs_bot, "%s added %s with public control set to %s", cmdparams->source->name, tc->name, tc->publiccontrol ? "On" : "Off");
-		irc_join (tvs_bot, tc->name, "+o");
+		if (tc->opchan) {
+			irc_join (tvs_bot, tc->name, "+o");
+		} else {
+			irc_join (tvs_bot, tc->name, NULL);
+		}
 	} else if (!ircstrcasecmp(cmdparams->av[0], "DEL")) {
 		if (cmdparams->ac < 2) {
 			return NS_ERR_SYNTAX_ERROR;
@@ -305,7 +350,7 @@ int tvs_chans(CmdParams* cmdparams) {
 		while ((hnode = hash_scan_next(&hs)) != NULL) {
 			tc = hnode_get(hnode);
 			i++;
-			irc_prefmsg (tvs_bot, cmdparams->source, "\2%d\2) %s (%s) - Public? %s - Points %d", i, tc->name, (TriviaChan *)GetChannelModValue (tc->c) ? "Open" : "Closed",  tc->publiccontrol ? "Yes" : "No", tc->scorepoints);
+			irc_prefmsg (tvs_bot, cmdparams->source, "\2%d\2) %s (%s) - Public? %s - OpChan? %s - Points %d", i, tc->name, (TriviaChan *)GetChannelModValue (tc->c) ? "Open" : "Closed", tc->publiccontrol ? "Yes" : "No", tc->opchan ? "Yes" : "No", tc->scorepoints);
 		}
 		irc_prefmsg (tvs_bot, cmdparams->source, "End of list.");
 	} else {

@@ -118,3 +118,14 @@ const char *tvs_help_pc[] = {
 	NULL
 };
 const char tvs_help_pc_oneline[] = "Set public control";
+
+const char *tvs_help_opchan[] = {
+	"Syntax: (in Channel only)",
+	"        \2!OPCHAN <ON/OFF>\2",
+	"",
+	"This command Sets the Channel Op status of the Pseudo Client",
+	"If ON it will gain CHANOP status on joining the Channel.",
+	"If OFF it will sit as a normal user in the Channel.",
+	NULL
+};
+const char tvs_help_opchan_oneline[] = "Set CHANOP level";

@@ -67,6 +67,7 @@ TriviaChan *NewTChan(Channel *c)
 	/* XXX */
 	tc->scorepoints = TriviaServ.defaultpoints;
 	tc->questtime = 60;
+	tc->opchan = 1;
 	SetChannelModValue (c, tc);
 	tc->qfl = list_create(-1);
 	hnode_create_insert (tch, tc, tc->name);
@@ -114,7 +115,11 @@ TriviaChan *OnlineTChan(Channel *c) {
 		tc = hnode_get(tcn);
 		tc->c = c;
 		SetChannelModValue (c, tc);
-		irc_join (tvs_bot, tc->name, "+o");
+		if (tc->opchan) {
+			irc_join (tvs_bot, tc->name, "+o");
+		} else {
+			irc_join (tvs_bot, tc->name, NULL);
+		}
 		return tc;
 	}
 	return NULL;

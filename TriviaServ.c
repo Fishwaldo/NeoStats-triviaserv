@@ -85,6 +85,7 @@ static bot_cmd tvs_commands[]=
 	{"QS",		tvs_cmd_qs,	1, 	0,		tvs_help_qs,		tvs_help_qs_oneline},
 	{"SETPOINTS",	tvs_cmd_sp,	1, 	0,		tvs_help_sp,		tvs_help_sp_oneline},
 	{"PUBLIC",	tvs_cmd_pc,	1, 	0,		tvs_help_pc,		tvs_help_pc_oneline},
+	{"OPCHAN",	tvs_cmd_opchan,	1, 	0,		tvs_help_opchan,	tvs_help_opchan_oneline},
 	{NULL,		NULL,		0, 	0,		NULL, 			NULL}
 };
 

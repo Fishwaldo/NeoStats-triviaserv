@@ -74,6 +74,7 @@ typedef struct TriviaChan {
 	int scorepoints;
 	time_t lastquest;
 	long questtime;
+	int opchan;
 	Questions *curquest;
 	list_t *qfl;
 }TriviaChan;
@@ -107,6 +108,8 @@ extern const char *tvs_help_sp[];
 extern const char tvs_help_sp_oneline[];
 extern const char *tvs_help_pc[];
 extern const char tvs_help_pc_oneline[];
+extern const char *tvs_help_opchan[];
+extern const char tvs_help_opchan_oneline[];
 
 /* TriviaUser.c */
 void tvs_addpoints(Client *u, TriviaChan *tc);
@@ -121,6 +124,7 @@ int tvs_cmd_stop (CmdParams* cmdparams);
 int tvs_cmd_qs (CmdParams* cmdparams);
 int tvs_cmd_sp (CmdParams* cmdparams);
 int tvs_cmd_pc (CmdParams* cmdparams);
+int tvs_cmd_opchan (CmdParams* cmdparams);
 int tvs_catlist(CmdParams* cmdparams);
 int tvs_chans(CmdParams* cmdparams);
 
