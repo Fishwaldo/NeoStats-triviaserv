@@ -211,7 +211,7 @@ static int tvs_chans(CmdParams* cmdparams) {
 		if (cmdparams->ac < 3) {
 			return NS_ERR_SYNTAX_ERROR;
 		}
-		c = find_channel (cmdparams->av[1]);
+		c = FindChannel (cmdparams->av[1]);
 		if (!c) {
 			irc_prefmsg (tvs_bot, cmdparams->source, "Error: Channel must be online");
 			return NS_FAILURE;
@@ -232,7 +232,7 @@ static int tvs_chans(CmdParams* cmdparams) {
 		}
 		SaveTChan(tc);
 		irc_prefmsg (tvs_bot, cmdparams->source, "Added %s with public control set to %s", tc->name, tc->publiccontrol ? "On" : "Off");
-		command_report(tvs_bot, "%s added %s with public control set to %s", cmdparams->source->name, tc->name, tc->publiccontrol ? "On" : "Off");
+		CommandReport(tvs_bot, "%s added %s with public control set to %s", cmdparams->source->name, tc->name, tc->publiccontrol ? "On" : "Off");
 		irc_join (tvs_bot, tc->name, 0);
 	} else if (!ircstrcasecmp(cmdparams->av[0], "DEL")) {
 		if (cmdparams->ac < 2) {
@@ -240,7 +240,7 @@ static int tvs_chans(CmdParams* cmdparams) {
 		}
 		if (DelTChan(cmdparams->av[1])) {
 			irc_prefmsg (tvs_bot, cmdparams->source, "Deleted %s out of Channel List", cmdparams->av[1]);
-			command_report(tvs_bot, "%s deleted %s out of Channel List", cmdparams->source->name, cmdparams->av[1]);
+			CommandReport(tvs_bot, "%s deleted %s out of Channel List", cmdparams->source->name, cmdparams->av[1]);
 			return NS_SUCCESS;
 		} else {
 			irc_prefmsg (tvs_bot, cmdparams->source, "Cant find %s in channel list.", cmdparams->av[1]);
@@ -322,13 +322,13 @@ int ModSynch (void)
 	hash_scan_begin(&hs, tch);
 	while ((hnodes = hash_scan_next(&hs)) != NULL) {
 		tc = hnode_get(hnodes);
-		c = find_channel (tc->name);
+		c = FindChannel (tc->name);
 		if (c) {
 			OnlineTChan(c);
 		}
 	}
 	/* kick of the question/answer timer */
-	add_timer (TIMER_TYPE_INTERVAL, tvs_processtimer, "tvs_processtimer", 10);
+	AddTimer (TIMER_TYPE_INTERVAL, tvs_processtimer, "tvs_processtimer", 10);
 	return NS_SUCCESS;
 }
 
@@ -337,8 +337,8 @@ ModuleEvent module_events[] = {
 	{EVENT_CPRIVATE, ChanPrivmsg},		
 	{EVENT_EMPTYCHAN, EmptyChan},
 	{EVENT_NEWCHAN, NewChan},
-	{EVENT_QUIT, DelUser},
-	{EVENT_KILL, DelUser},
+	{EVENT_QUIT, QuitUser},
+	{EVENT_KILL, KillUser},
 	{EVENT_NULL, NULL}
 };
 
@@ -671,7 +671,7 @@ int DelTChan(char *chan) {
 	if (hnode) {
 		tc = hnode_get(hnode);
 		/* part the channel if its online */
-		if ((TriviaChan *)GetChannelModValue (tc->c)) OfflineTChan(find_channel (tc->name));
+		if ((TriviaChan *)GetChannelModValue (tc->c)) OfflineTChan(FindChannel (tc->name));
 		hash_delete(tch, hnode);
 		list_destroy_nodes(tc->qfl);
 		ns_free (tc);
