@@ -504,7 +504,6 @@ void LoadChannel( void *data )
 
 int tvs_get_settings() {
 	QuestionFiles *qf;
-	lnode_t *node;
 	int i, count = 0;
 #ifndef WIN32
 	struct direct **files;
@@ -525,16 +524,14 @@ int tvs_get_settings() {
 		return NS_FAILURE;
 	}
 	for (i = 1; i<count; i++) {
-		qf = ns_malloc (sizeof(QuestionFiles));
+		qf = ns_calloc (sizeof(QuestionFiles));
 #ifndef WIN32
 		strlcpy(qf->filename, files[i-1]->d_name, MAXPATH);
 #else
 		strlcpy(qf->filename, filelist[i-1], MAXPATH);
 #endif
-		qf->fn = 0;
 		qf->QE = list_create(-1);
-		node = lnode_create(qf);
-		list_append(qfl, node);
+		lnode_create_append(qfl, qf);
 	}
 	DBAFetchRows ("Channel", LoadChannel);
 	return NS_SUCCESS;
@@ -543,7 +540,7 @@ int tvs_get_settings() {
 void tvs_parse_questions() {
 	QuestionFiles *qf;
 	Questions *qe;
-	lnode_t *qfnode, *qenode;
+	lnode_t *qfnode;
 	char pathbuf[MAXPATH];
 	char questbuf[QUESTSIZE];	
 	long i = 0;
@@ -584,8 +581,7 @@ void tvs_parse_questions() {
 			qe = ns_calloc (sizeof(Questions));
 			qe->qn = i;
 			qe->offset = os_ftell (qf->fn);
-			qenode = lnode_create(qe);
-			list_append(qf->QE, qenode);
+			lnode_create_append(qf->QE, qe);
 		}
 			
 		/* leave the filehandle open for later */
@@ -724,7 +720,7 @@ void tvs_set(CmdParams* cmdparams, TriviaChan *tc)
 					return;
 				} else {
 					qf = lnode_get(lnode);
-					list_append(tc->qfl, lnode_create(qf));
+					lnode_create_append(tc->qfl, qf);
 					irc_prefmsg (tvs_bot, cmdparams->source, "Added Category %s to this channel", cmdparams->av[2]);
 					irc_chanprivmsg (tvs_bot, tc->name, "%s added Category %s to the list of questions", cmdparams->source->name, cmdparams->av[2]);
 					SaveTChan(tc);
@@ -951,8 +947,8 @@ int tvs_doregex(Questions *qe, char *buf) {
 	/* strip any newlines out */
 	strip(buf);
 	/* we copy the entire thing into the question struct, but it will end up as only the question after pcre does its thing */
-	qe->question = ns_malloc (QUESTSIZE);
-	qe->answer = ns_malloc (ANSSIZE);
+	qe->question = ns_calloc (QUESTSIZE);
+	qe->answer = ns_calloc (ANSSIZE);
 	strlcpy(qe->question, buf, QUESTSIZE);
 	memset (tmpbuf, 0, ANSSIZE);
 	/* no, its not a infinate loop */
