@@ -306,6 +306,10 @@ restartquestionselection:
 		irc_chanalert (tvs_bot, "Question Parsing Failed. Please Check Log File");
 		return;
 	}	
+	/*
+	 * ToDo : 1 - add proportional scoring system, the quicker the answer the more points
+	 *        2 - add random scoring system , random between set values
+	*/
 	qe->points = tc->scorepoints;
 	tc->curquest = qe;
 	irc_chanprivmsg (tvs_bot, tc->name, "Fingers on the keyboard, Here comes the Next Question!");
@@ -374,7 +378,6 @@ int tvs_doregex(Questions *qe, char *buf) {
 					return NS_FAILURE;
 				}
 				ns_free (re);
-				/* XXXX Random Scores? */
 				qe->points = 1;
 				qe->hints = 0;
 				return NS_SUCCESS;
@@ -405,7 +408,6 @@ int tvs_doregex(Questions *qe, char *buf) {
 			pcre_free_substring_list(subs);
 		}
 	}		
-	/* XXXX Random Scores? */
 	qe->points = 1;
 	return NS_SUCCESS;		
 	

@@ -202,7 +202,6 @@ int ModInit( void )
 #endif
 	ModuleConfig (tvs_settings);
 	TriviaServ.Questions = 0;
-	/* XXX todo */
 	qfl = list_create(-1);
 	tch = hash_create(-1, 0, 0);
 	if (tvs_get_settings() == NS_FAILURE) 

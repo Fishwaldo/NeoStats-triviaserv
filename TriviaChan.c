@@ -87,7 +87,6 @@ TriviaChan *NewTChan(Channel *c)
 	tc = ns_calloc (sizeof(TriviaChan));
 	strlcpy (tc->name, c->name, MAXCHANLEN);
 	tc->c = c;
-	/* XXX */
 	tc->scorepoints = TriviaServ.defaultpoints;
 	tc->questtime = 60;
 	tc->opchan = 1;
@@ -178,7 +177,6 @@ int DelTChan(char *chan) {
 int SaveTChan (TriviaChan *tc) 
 {
 	DBAStore ("Channel", tc->name, tc, sizeof (TriviaChan));
-	/* XXX Save Category List */
 	return NS_SUCCESS;
 }
 
