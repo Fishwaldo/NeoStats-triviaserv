@@ -142,7 +142,7 @@ int tvs_cmd_qs (CmdParams* cmdparams)
 		/* nope, get lost */
 		return NS_FAILURE;
 	}
-	tvs_quesset(cmdparams, tc);
+	tvs_quesset(cmdparams, tc, NULL);
 	return NS_SUCCESS;
 }
 

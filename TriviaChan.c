@@ -30,8 +30,10 @@
 #include "neostats.h"	/* Neostats API */
 #include "TriviaServ.h"
 
-int LoadChannel( void *data, int size )
-{
+/*
+ * Loads Channel Data
+*/
+int LoadChannel( void *data, int size ) {
 	TriviaChan *tc;
 
 	tc = ns_calloc (sizeof(TriviaChan));
@@ -39,6 +41,27 @@ int LoadChannel( void *data, int size )
 	tc->qfl = list_create(-1);
 	hnode_create_insert(tch, tc, tc->name);
 	dlog (DEBUG1, "Loaded TC entry for Channel %s", tc->name);
+	return NS_FALSE;
+}
+
+/*
+ * Loads Channel Question Sets Data
+ * and attaches lists to channel via
+ * tvs_quesset procedure
+*/
+int LoadCQSets( void *data, int size ) {
+	TriviaChan *tc;
+	hnode_t *tcn;
+	TriviaChannelQuestionFiles *tcqf;
+
+	tcqf = ns_calloc(sizeof(TriviaChannelQuestionFiles));
+	os_memcpy (tcqf, data, sizeof(TriviaChannelQuestionFiles));
+	tcn = hash_lookup(tch, tcqf->cname);
+	if (tcn != NULL) {
+		tc = hnode_get(tcn);
+		tvs_quesset(NULL, tc, tcqf->qname);
+	}
+	ns_free(tcqf);
 	return NS_FALSE;
 }
 

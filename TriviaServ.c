@@ -158,6 +158,7 @@ int ModSynch (void)
 	if (!tvs_bot) {
 		return NS_FAILURE;
 	}
+	irc_chanalert (tvs_bot, "Successfully Started, %ld questions loaded", TriviaServ.Questions);
 	hash_scan_begin(&hs, tch);
 	while ((hnodes = hash_scan_next(&hs)) != NULL) {
 		tc = hnode_get(hnodes);
@@ -207,6 +208,12 @@ int ModInit( void )
 	if (tvs_get_settings() == NS_FAILURE) 
 		return NS_FAILURE;
 	tvs_parse_questions();
+	/*
+	 * read the Channel Question Sets AFTER
+	 * parsing the question files, so the name
+	 * exists when adding to TriviaChan
+	*/
+	DBAFetchRows ("CQSets", LoadCQSets);
 	return NS_SUCCESS;
 }
 

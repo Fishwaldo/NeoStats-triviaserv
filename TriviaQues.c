@@ -103,12 +103,27 @@ int find_cat_name(const void *catnode, const void *name)
  * Adds/Removes/Lists or resets to default
  * Category Entries/Question Sets for a channel
 */
-void tvs_quesset(CmdParams* cmdparams, TriviaChan *tc) 
+void tvs_quesset(CmdParams* cmdparams, TriviaChan *tc, char *cn) 
 {
 	lnode_t *lnode;
 	QuestionFiles *qf;
+	TriviaChannelQuestionFiles *tcqf;
 
-	if (cmdparams->ac == 5 && !ircstrcasecmp(cmdparams->av[0], "ADD")) {
+	if (!cmdparams) {
+		/* Adds categories to channel on module loading */
+		lnode = list_find(qfl, cn, find_cat_name);
+		if (lnode) {
+			if (list_find(tc->qfl, cn, find_cat_name)) {
+				return;
+			} else {
+				qf = lnode_get(lnode);
+				lnode_create_append(tc->qfl, qf);
+				return;
+			}
+		} else {
+			return;
+		}
+	} else if (cmdparams->ac == 2 && !ircstrcasecmp(cmdparams->av[0], "ADD")) {
 		lnode = list_find(qfl, cmdparams->av[1], find_cat_name);
 		if (lnode) {
 			if (list_find(tc->qfl, cmdparams->av[1], find_cat_name)) {
@@ -117,24 +132,34 @@ void tvs_quesset(CmdParams* cmdparams, TriviaChan *tc)
 			} else {
 				qf = lnode_get(lnode);
 				lnode_create_append(tc->qfl, qf);
+				/* add to Channel Question Sets DB */
+				tcqf = ns_calloc(sizeof(TriviaChannelQuestionFiles));
+				strlcpy(tcqf->cname, tc->c->name, MAXCHANLEN);
+				strlcpy(tcqf->qname, cmdparams->av[1], QUESTSIZE);
+				ircsnprintf(tcqf->savename, MAXCHANLEN+QUESTSIZE+1, "%s%s", tcqf->qname, tcqf->cname);
+				DBAStore( "CQSets", tcqf->savename, tcqf, sizeof(TriviaChannelQuestionFiles));
+				ns_free(tcqf);
 				irc_prefmsg (tvs_bot, cmdparams->source, "Added Category %s to this channel", cmdparams->av[1]);
 				irc_chanprivmsg (tvs_bot, tc->name, "%s added Category %s to the list of questions", cmdparams->source->name, cmdparams->av[1]);
-				SaveTChan(tc);
 				return;
 			}
 		} else {
 			irc_prefmsg (tvs_bot, cmdparams->source, "Can't Find Category %s. Try /msg %s catlist", cmdparams->av[1], tvs_bot->name);
 			return;
 		}
-	} else if (cmdparams->ac == 5 && !ircstrcasecmp(cmdparams->av[0], "DEL")) {
+	} else if (cmdparams->ac == 2 && !ircstrcasecmp(cmdparams->av[0], "DEL")) {
 		lnode = list_find(tc->qfl, cmdparams->av[1], find_cat_name);
 		if (lnode) {
 			list_delete(tc->qfl, lnode);
 			lnode_destroy(lnode);
+			/* remove from Channel Question Sets DB */
+			tcqf = ns_calloc(sizeof(TriviaChannelQuestionFiles));
+			ircsnprintf(tcqf->savename, MAXCHANLEN+QUESTSIZE+1, "%s%s", cmdparams->av[1], tc->c->name);
+			DBADelete("CQSets", tcqf->savename);
+			ns_free(tcqf);
 			/* dun delete the QF entry. */
 			irc_prefmsg (tvs_bot, cmdparams->source, "Deleted Category %s for this channel", cmdparams->av[1]);
 			irc_chanprivmsg (tvs_bot, tc->name, "%s deleted category %s for this channel", cmdparams->source->name, cmdparams->av[1]);
-			SaveTChan(tc);
 			return;
 		} else {
 			irc_prefmsg (tvs_bot, cmdparams->source, "Couldn't find Category %s in the list. Try !set category list", cmdparams->av[1]);
@@ -156,12 +181,21 @@ void tvs_quesset(CmdParams* cmdparams, TriviaChan *tc)
 			return;
 		}
 	} else if (!ircstrcasecmp(cmdparams->av[0], "RESET")) {
+		/* first we remove all entries from Channel Question Sets DB */
+		tcqf = ns_calloc(sizeof(TriviaChannelQuestionFiles));
+		while (lnode != NULL) {
+			qf = lnode_get(lnode);
+			ircsnprintf(tcqf->savename, MAXCHANLEN+QUESTSIZE+1, "%s%s", qf->name, tc->c->name);
+			DBADelete("CQSets", tcqf->savename);
+			lnode = list_next(tc->qfl, lnode);
+		}
+		ns_free(tcqf);
+		/* then remove the list nodes */
 		while (!list_isempty(tc->qfl)) {
 			list_destroy_nodes(tc->qfl);
 		}
 		irc_prefmsg (tvs_bot, cmdparams->source, "Reset the Question Catagories to Default in %s", tc->name);
 		irc_chanprivmsg (tvs_bot, tc->name, "%s reset the Question Categories to Default", cmdparams->source->name);
-		SaveTChan(tc);
 		return;
 	} else {
 		irc_prefmsg (tvs_bot, cmdparams->source, "Syntax Error. /msg %s help QS", tvs_bot->name);

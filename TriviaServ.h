@@ -80,6 +80,12 @@ typedef struct TriviaChan {
 	list_t *qfl;
 } TriviaChan;
 
+typedef struct TriviaChannelQuestionFiles {
+	char savename[MAXCHANLEN+QUESTSIZE+1];
+	char cname[MAXCHANLEN];
+	char qname[QUESTSIZE];
+} TriviaChannelQuestionFiles;
+
 typedef struct TriviaChannelScore {
 	char savename[MAXCHANLEN+MAXNICK+1];
 	char cname[MAXCHANLEN];
@@ -147,6 +153,7 @@ int tvs_chans(CmdParams* cmdparams);
 
 /* TriviaChan.c */
 int LoadChannel( void *data, int size );
+int LoadCQSets( void *data, int size );
 TriviaChan *NewTChan(Channel *c);
 TriviaChan *OfflineTChan(Channel *c);
 TriviaChan *OnlineTChan(Channel *c);
@@ -158,7 +165,7 @@ int NewChan(CmdParams* cmdparams);
 /* TriviaQues.c */
 void tvs_parse_questions();
 int find_cat_name(const void *catnode, const void *name);
-void tvs_quesset(CmdParams* cmdparams, TriviaChan *tc);
+void tvs_quesset(CmdParams* cmdparams, TriviaChan *tc, char *cn);
 QuestionFiles *tvs_randomquestfile(TriviaChan *tc);
 void tvs_newquest(TriviaChan *tc);
 void tvs_ansquest(TriviaChan *tc);
