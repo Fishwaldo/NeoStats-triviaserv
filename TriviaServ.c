@@ -46,11 +46,10 @@ static int tvs_get_settings();
 static void tvs_parse_questions();
 static int tvs_chans(CmdParams* cmdparams);
 static int tvs_catlist(CmdParams* cmdparams);
-static TriviaChan *FindTChan(Channel *);
 static TriviaChan *NewTChan(Channel *);
 static int SaveTChan (TriviaChan *);
 static int DelTChan(char *);
-int PartChan(CmdParams* cmdparams);
+int EmptyChan (CmdParams* cmdparams);
 int NewChan(CmdParams* cmdparams);
 static TriviaChan *OnlineTChan(Channel *c);
 int tvs_processtimer (void);
@@ -91,7 +90,7 @@ int tvs_cmd_score (CmdParams* cmdparams)
 	TriviaChan *tc;
 
 	/* find if its our channel. */
-	tc = FindTChan(cmdparams->channel);
+	tc = (TriviaChan *)get_channel_moddata (cmdparams->channel);
 	if (!tc) {
 		return NS_FAILURE;
 	}
@@ -104,7 +103,7 @@ int tvs_cmd_hint (CmdParams* cmdparams)
 	TriviaChan *tc;
 
 	/* find if its our channel. */
-	tc = FindTChan(cmdparams->channel);
+	tc = (TriviaChan *)get_channel_moddata (cmdparams->channel);
 	if (!tc) {
 		return NS_FAILURE;
 	}
@@ -116,7 +115,7 @@ int tvs_cmd_start (CmdParams* cmdparams)
 	TriviaChan *tc;
 
 	/* find if its our channel. */
-	tc = FindTChan(cmdparams->channel);
+	tc = (TriviaChan *)get_channel_moddata (cmdparams->channel);
 	if (!tc) {
 		return NS_FAILURE;
 	}
@@ -134,7 +133,7 @@ int tvs_cmd_stop (CmdParams* cmdparams)
 	TriviaChan *tc;
 
 	/* find if its our channel. */
-	tc = FindTChan(cmdparams->channel);
+	tc = (TriviaChan *)get_channel_moddata (cmdparams->channel);
 	if (!tc) {
 		return NS_FAILURE;
 	}
@@ -156,7 +155,7 @@ int tvs_cmd_sset (CmdParams* cmdparams)
 	TriviaChan *tc;
 
 	/* find if its our channel. */
-	tc = FindTChan(cmdparams->channel);
+	tc = (TriviaChan *)get_channel_moddata (cmdparams->channel);
 	if (!tc) {
 		return NS_FAILURE;
 	}
@@ -217,7 +216,7 @@ static int tvs_chans(CmdParams* cmdparams) {
 			irc_prefmsg (tvs_bot, cmdparams->source, "Error: Channel must be online");
 			return NS_FAILURE;
 		}
-		if (FindTChan(c)) {
+		if ((TriviaChan *)get_channel_moddata (c)) {
 			irc_prefmsg (tvs_bot, cmdparams->source, "Error: Channel already exists in the database");
 			return NS_FAILURE;
 		}
@@ -254,7 +253,7 @@ static int tvs_chans(CmdParams* cmdparams) {
 		while ((hnode = hash_scan_next(&hs)) != NULL) {
 			tc = hnode_get(hnode);
 			i++;
-			irc_prefmsg (tvs_bot, cmdparams->source, "\1%d\1) %s (%s) - Public? %s", i, tc->name, FindTChan(tc->c) ? "*" : "",  tc->publiccontrol ? "Yes" : "No");
+			irc_prefmsg (tvs_bot, cmdparams->source, "\1%d\1) %s (%s) - Public? %s", i, tc->name, (TriviaChan *)get_channel_moddata (tc->c) ? "*" : "",  tc->publiccontrol ? "Yes" : "No");
 		}
 		irc_prefmsg (tvs_bot, cmdparams->source, "End of list.");
 	} else {
@@ -275,7 +274,7 @@ int ChanPrivmsg (CmdParams* cmdparams)
 	char *tmpbuf;
 	
 	/* find if its our channel. */
-	tc = FindTChan(cmdparams->channel);
+	tc = (TriviaChan *)get_channel_moddata (cmdparams->channel);
 	if (!tc) {
 		return NS_FAILURE;
 	}
@@ -316,7 +315,7 @@ int ModSynch (void)
 	Channel *c;
 	
 	/* Introduce a bot onto the network */
-	tvs_bot = init_bot (&tvs_botinfo);
+	tvs_bot = AddBot (&tvs_botinfo);
 	if (!tvs_bot) {
 		return NS_FAILURE;
 	}
@@ -336,8 +335,7 @@ int ModSynch (void)
 /** Module Events */
 ModuleEvent module_events[] = {
 	{EVENT_CPRIVATE, ChanPrivmsg},		
-	{EVENT_PART, PartChan},
-	{EVENT_KICK, PartChan},
+	{EVENT_EMPTYCHAN, EmptyChan},
 	{EVENT_NEWCHAN, NewChan},
 	{EVENT_QUIT, DelUser},
 	{EVENT_KILL, DelUser},
@@ -350,7 +348,6 @@ ModuleEvent module_events[] = {
  */
 int ModInit (Module *mod_ptr)
 {
-	TriviaServ.modnum = mod_ptr->modnum;
 	TriviaServ.Questions = 0;
 	/* XXX todo */
 	TriviaServ.HintRatio = 3;
@@ -381,7 +378,7 @@ void ModFini()
 		tc = hnode_get(hnodes);
 		if (tc->c) {
 			c = tc->c;
-			set_channel_moddata (c, NULL);
+			clear_channel_moddata (c);
 		}
 		list_destroy_nodes(tc->qfl);
 		hash_scan_delete(tch, hnodes);
@@ -392,7 +389,7 @@ void ModFini()
 	while (lnodes != NULL) {
 		qf = lnode_get(lnodes);
 		if (qf->fn) {
-			sys_file_close (qf->fn);
+			os_fclose (qf->fn);
 		}
 		ln3 = list_first(qf->QE);
 		while (ln3 != NULL) {
@@ -563,7 +560,7 @@ void tvs_parse_questions() {
 		qf = lnode_get(qfnode);
 		ircsnprintf(pathbuf, MAXPATH, "%s/%s", questpath, qf->filename);
 		dlog (DEBUG2, "Opening %s for reading offsets", pathbuf);
-		qf->fn = sys_file_open (pathbuf, FILE_MODE_READ);
+		qf->fn = os_fopen (pathbuf, "r");
 		/*  if we can't open it, bail out */
 		if (!qf->fn) {
 			nlog(LOG_WARNING, "Couldn't Open Question File %s for Reading offsets: %s", qf->filename, strerror(errno));
@@ -571,7 +568,7 @@ void tvs_parse_questions() {
 			continue;
 		}
 		/* the first line should be the version number and description */
-		if (sys_file_gets (questbuf, QUESTSIZE, qf->fn) != NULL) {
+		if (os_fgets (questbuf, QUESTSIZE, qf->fn) != NULL) {
 			/* XXX Parse the Version Number */
 			/* Do this post version 1.0 when we have download/update support */
 			strlcpy(qf->description, questbuf, QUESTSIZE);
@@ -588,11 +585,11 @@ void tvs_parse_questions() {
 		/* use pathbuf as we don't actuall care about the data */
 	
 		/* THIS IS DAMN SLOW. ANY HINTS TO SPEED UP? */
-		while (sys_file_gets (questbuf, QUESTSIZE, qf->fn) != NULL) {
+		while (os_fgets (questbuf, QUESTSIZE, qf->fn) != NULL) {
 			i++;
 			qe = ns_calloc (sizeof(Questions));
 			qe->qn = i;
-			qe->offset = sys_file_tell (qf->fn);
+			qe->offset = os_ftell (qf->fn);
 			qenode = lnode_create(qe);
 			list_append(qf->QE, qenode);
 		}
@@ -607,14 +604,6 @@ void tvs_parse_questions() {
 //	irc_chanalert (tvs_bot, "Successfully Loaded information for %ld questions", (long)list_count(ql));
 }
 
-
-TriviaChan *FindTChan(Channel* c) 
-{
-	if (!c) {
-		return NULL;
-	}
-	return (TriviaChan *)get_channel_moddata (c);
-}
 
 TriviaChan *NewTChan(Channel *c) 
 {
@@ -654,7 +643,7 @@ TriviaChan *OfflineTChan(Channel *c) {
 		nlog(LOG_WARNING, "TriviaChan %s already marked offline?!!?!", c->name);
 		return NULL;
 	}
-	set_channel_moddata (c, NULL);
+	clear_channel_moddata (c);
 	tc->c = NULL;
 	tc->active = 0;
 	tc->curquest = NULL;
@@ -692,7 +681,7 @@ int DelTChan(char *chan) {
 	if (hnode) {
 		tc = hnode_get(hnode);
 		/* part the channel if its online */
-		if (FindTChan(tc->c)) OfflineTChan(find_chan (tc->name));
+		if ((TriviaChan *)get_channel_moddata (tc->c)) OfflineTChan(find_chan (tc->name));
 		hash_delete(tch, hnode);
 		list_destroy_nodes(tc->qfl);
 		ns_free (tc);
@@ -711,12 +700,9 @@ int SaveTChan (TriviaChan *tc)
 	return NS_SUCCESS;
 }
 
-int PartChan(CmdParams* cmdparams) 
+int EmptyChan (CmdParams* cmdparams)
 {
-	if (FindTChan(cmdparams->channel) && (cmdparams->channel->users == 2)) {
-		/* last user leaving, so we go offline on this channel */
-		OfflineTChan(cmdparams->channel);
-	}
+	OfflineTChan(cmdparams->channel);
 	return NS_SUCCESS;
 }
 
@@ -921,12 +907,12 @@ restartquestionselection:
 		goto restartquestionselection;
 	}
 	/* ok, now seek to the question in the file */
-	if (sys_file_seek (qf->fn, qe->offset, SEEK_SET)) {
+	if (os_fseek (qf->fn, qe->offset, SEEK_SET)) {
 		nlog(LOG_WARNING, "Eh? Fseek returned a error(%s): %s", qf->filename, strerror(errno));
 		irc_chanalert (tvs_bot, "Question File Error in %s: %s", qf->filename, strerror(errno));
 		return;
 	}
-	if (!sys_file_gets (tmpbuf, 512, qf->fn)) {
+	if (!os_fgets (tmpbuf, 512, qf->fn)) {
 		nlog(LOG_WARNING, "Eh, fgets returned null(%s): %s", qf->filename, strerror(errno));
 		irc_chanalert (tvs_bot, "Question file Error in %s: %s", qf->filename, strerror(errno));
 		return;
@@ -975,7 +961,7 @@ int tvs_doregex(Questions *qe, char *buf) {
 	qe->question = ns_malloc (QUESTSIZE);
 	qe->answer = ns_malloc (ANSSIZE);
 	strlcpy(qe->question, buf, QUESTSIZE);
-	bzero(tmpbuf, ANSSIZE);
+	memset (tmpbuf, 0, ANSSIZE);
 	/* no, its not a infinate loop */
 	while (1) {	
 		rc = pcre_exec(re, NULL, qe->question, strlen(qe->question), 0, 0, ovector, 9);
@@ -1008,11 +994,11 @@ int tvs_doregex(Questions *qe, char *buf) {
 			/* we pull one answer off at a time, so we place the question (and maybe another answer) into question again for further processing later */
 			strlcpy(qe->question, subs[1], QUESTSIZE);
 			/* if this is the first answer, this is the one we display in the channel */
-			if (strlen(qe->answer) == 0) {
+			if (qe->answer[0] == 0) {
 				strlcpy(qe->answer, subs[2], ANSSIZE);
 			}
 			/* tmpbuf will hold our eventual regular expression to find the answer in the channel */
-			if (strlen(tmpbuf) == 0) {
+			if (tmpbuf[0] == 0) {
 				ircsnprintf(tmpbuf, ANSSIZE, "%s", subs[2]);
 			} else {
 				ircsnprintf(tmpbuf1, ANSSIZE, "%s|%s", tmpbuf, subs[2]);

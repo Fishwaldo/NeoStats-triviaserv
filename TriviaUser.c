@@ -39,11 +39,8 @@ void tvs_addpoints(Client *u, TriviaChan *tc)
 		nlog(LOG_WARNING, "Can't find user for AddPoints?!");
 		return;
 	}
-	if (get_user_moddata (u) != NULL) {
-		/* create/load a new user */
-		ts = get_user_moddata (u);
-		/* XXX Load User? */		
-	} else {
+	ts = get_user_moddata (u);
+	if (!ts) {
 		if (!(u->user->Umode & UMODE_REGNICK)) {
 			/* not a registered user */
 			irc_prefmsg (tvs_bot, u, "If you want your score to be kept between sessions, you should register your nickname");

@@ -39,9 +39,7 @@ struct TriviaServ {
 	char user[MAXUSER]; 
 	char host[MAXHOST]; 
 	char realname[MAXREALNAME]; 
-	int isonline;
 	int use_exc;
-	int modnum;
 	int HintRatio;
 	long Questions;
 } TriviaServ;
