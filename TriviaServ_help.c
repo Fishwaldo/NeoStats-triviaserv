@@ -43,3 +43,8 @@ const char *tvs_help_set_exclusions[] = {
 };
 
 
+const char *tvs_help_chans[] = {
+	"chans",
+	NULL
+};
+const char tvs_help_chans_oneline[] = "Chans";

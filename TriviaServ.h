@@ -76,7 +76,8 @@ extern const char tvs_help_about_oneline[];
 extern const char *tvs_help_version[];
 extern const char tvs_help_version_oneline[];
 extern const char *tvs_help_set_exclusions[];
-
+extern const char *tvs_help_chans[];
+extern const char tvs_help_chans_oneline[];
 
 
 #endif /* TRIVIASERV_H */

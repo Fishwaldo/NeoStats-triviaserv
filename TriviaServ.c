@@ -37,7 +37,13 @@ static void tvs_get_settings();
 static void tvs_parse_questions();
 static int tvs_about();
 static int tvs_version();
-
+static int tvs_chans();
+static TriviaChan *FindTChan(char *);
+static TriviaChan *NewTChan(Chans *);
+static int SaveTChan (TriviaChan *);
+static int DelTChan(char *);
+int PartChan(char **av, int ac);
+int NewChan(char **av, int ac);
 
 static ModUser *tvs_bot;
 
@@ -64,8 +70,9 @@ Functions __module_functions[] = {
 
 static bot_cmd tvs_commands[]=
 {
-	{"ABOUT",	tvs_about,	0, 	NS_ULEVEL_ADMIN,	tvs_help_about, 	tvs_help_about_oneline },
-	{"VERSION",	tvs_version,	0, 	NS_ULEVEL_ADMIN,	tvs_help_version,	tvs_help_version_oneline },
+	{"ABOUT",	tvs_about,	0, 	NS_ULEVEL_OPER,		tvs_help_about, 	tvs_help_about_oneline },
+	{"VERSION",	tvs_version,	0, 	NS_ULEVEL_OPER,		tvs_help_version,	tvs_help_version_oneline },
+	{"CHANS",	tvs_chans,	1,	NS_ULEVEL_OPER, 	tvs_help_chans,		tvs_help_chans_oneline },
 	{NULL,		NULL,		0, 	0,					NULL, 			NULL}
 };
 
@@ -96,6 +103,69 @@ static int tvs_version(User * u, char **av, int ac)
 	return 1;
 }
 
+static int tvs_chans(User *u, char **av, int ac) {
+	hscan_t hs;
+	hnode_t *hnode;
+	TriviaChan *tc;
+	Chans *c;
+	int i;
+	
+	if (!ircstrcasecmp(av[2], "ADD")) {
+		if (ac < 5) {
+			prefmsg(u->nick, s_TriviaServ, "Invalid Syntax. /msg %s help chans", s_TriviaServ);
+			return NS_FAILURE;
+		}
+		c = findchan(av[3]);
+		if (!c) {
+			prefmsg(u->nick, s_TriviaServ, "Error: Channel must be online");
+			return NS_FAILURE;
+		}
+		if (FindTChan(av[3])) {
+			prefmsg(u->nick, s_TriviaServ, "Error: That Channel already exists in the database");
+			return NS_FAILURE;
+		}
+		tc = NewTChan(c);
+		if (!tc) {
+			prefmsg(u->nick, s_TriviaServ, "Error: Channel must be online");
+			return NS_FAILURE;
+		}
+		if (!ircstrcasecmp(av[4], "On")) {
+			tc->publiccontrol = 1;
+		} else {
+			tc->publiccontrol = 0;
+		}
+		SaveTChan(tc);
+		prefmsg(u->nick, s_TriviaServ, "Added %s with public control set to %s", tc->name, tc->publiccontrol ? "On" : "Off");
+		chanalert(s_TriviaServ, "%s added %s with public control set to %s", u->nick, tc->name, tc->publiccontrol ? "On" : "Off");
+		join_bot_to_chan(s_TriviaServ, tc->name, 0);
+	} else if (!ircstrcasecmp(av[2], "DEL")) {
+		if (ac < 4) {
+			prefmsg(u->nick, s_TriviaServ, "Invalid Syntax. /msg %s help chans", s_TriviaServ);
+			return NS_FAILURE;
+		}
+		if (DelTChan(av[3])) {
+			prefmsg(u->nick, s_TriviaServ, "Deleted %s out of Channel List", av[3]);
+			chanalert(s_TriviaServ, "%s deleted %s out of Channel List", u->nick, av[3]);
+			return NS_SUCCESS;
+		} else {
+			prefmsg(u->nick, s_TriviaServ, "Cant find %s in channel list.", av[3]);
+			return NS_FAILURE;
+		}
+	} else if (!ircstrcasecmp(av[2], "LIST")) {
+		prefmsg(u->nick, s_TriviaServ, "Trivia Chans:");
+		hash_scan_begin(&hs, tch);
+		i = 0;
+		while ((hnode = hash_scan_next(&hs)) != NULL) {
+			tc = hnode_get(hnode);
+			i++;
+			prefmsg(u->nick, s_TriviaServ, "%d) %s (%s) - Public? %s", i, tc->name, FindTChan(tc->name) ? "*" : "",  tc->publiccontrol ? "Yes" : "No");
+		}
+		prefmsg(u->nick, s_TriviaServ, "End of List.");
+	} else {
+		prefmsg(u->nick, s_TriviaServ, "Invalid Syntax. /msg %s help Chans", s_TriviaServ);
+	}
+	return NS_SUCCESS;
+}
 
 
 
@@ -130,6 +200,9 @@ static int Online(char **av, int ac)
  */
 EventFnList __module_events[] = {
 	{EVENT_ONLINE, Online},
+	{EVENT_PARTCHAN, PartChan},
+	{EVENT_KICK, PartChan},
+	{EVENT_NEWCHAN, NewChan},
 	{NULL, NULL}
 };
 
@@ -159,7 +232,48 @@ int __ModInit(int modnum, int apiver)
  */
 void __ModFini()
 {
-
+	lnode_t *lnodes, *ln2;
+	hnode_t *hnodes;
+	QuestionFiles *qf;
+	Questions *qe;
+	hscan_t hs;
+	TriviaChan *tc;
+	Chans *c;
+	
+	lnodes = list_first(qfl);
+	while (lnodes != NULL) {
+		qf = lnode_get(lnodes);
+		if (qf->fn) {
+			fclose(qf->fn);
+		}
+		list_delete(qfl, lnodes);
+		ln2 = list_next(qfl, lnodes);
+		lnode_destroy(lnodes);	
+		free(qf);
+		lnodes = ln2;
+	}
+	lnodes = list_first(ql);
+	while (lnodes != NULL) {
+		qe = lnode_get(lnodes);
+		if (qe->question) {
+			free(qe->question);
+			free(qe->answer);
+		}
+		list_delete(ql, lnodes);
+		ln2 = list_next(ql, lnodes);
+		lnode_destroy(lnodes);
+		free(qe);
+		lnodes = ln2;
+	}
+	hash_scan_begin(&hs, tch);
+	while ((hnodes = hash_scan_next(&hs)) != NULL) {
+		tc = hnode_get(hnodes);
+		c = tc->c;
+		c->moddata[TriviaServ.modnum] = NULL;
+		hash_scan_delete(tch, hnodes);
+		hnode_destroy(hnodes);
+		free(tc);
+	}
 };
 
 void tvs_get_settings() {
@@ -245,7 +359,7 @@ TriviaChan *NewTChan(Chans *c) {
 	}
 	if (c->moddata[TriviaServ.modnum] != NULL) {
 		nlog(LOG_WARNING, LOG_MOD, "Hrm, Chan %s already has a TriviaChanStruct with it", c->name);
-		return NULL;
+		return (TriviaChan *)c->moddata[TriviaServ.modnum];
 	}
 	/* ok, first we lookup in the tch hash, to see if this is a channel that we already have a setting for */
 	tcn = hash_lookup(tch, c->name);
@@ -260,10 +374,7 @@ TriviaChan *NewTChan(Chans *c) {
 		hash_insert(tch, tcn, tc->name);
 		nlog(LOG_DEBUG1, LOG_MOD, "Created New TC entry for Channel %s", c->name);
 	} else {
-		tc = hnode_get(tcn);
-		tc->c = c;
-		c->moddata[TriviaServ.modnum] = tc;
-		nlog(LOG_DEBUG1, LOG_MOD, "Loaded a TC entry from hash for Channel %s", c->name);
+		return NULL;
 	}
 	return tc;
 }
@@ -280,15 +391,70 @@ TriviaChan *OfflineTChan(Chans *c) {
 	tc = c->moddata[TriviaServ.modnum];
 	c->moddata[TriviaServ.modnum] = NULL;
 	tc->c = NULL;
+	spart_cmd(s_TriviaServ, c->name);
 	return tc;
 }
 
-int DelTChan(TriviaChan *tc) {
-	/* XXX todo */
-	return NS_SUCCESS;
+TriviaChan *OnlineTChan(Chans *c) {
+	TriviaChan *tc;
+	hnode_t *tcn;
+	if (!c) {
+		return NULL;
+	}
+	if (c->moddata[TriviaServ.modnum] != NULL) {
+		nlog(LOG_WARNING, LOG_MOD, "TriviaChan %s already marked online?!?!", c->name);
+		return (TriviaChan *)c->moddata[TriviaServ.modnum];
+	}
+	tcn = hash_lookup(tch, c->name);
+	if (tcn != NULL) {
+		tc = hnode_get(tcn);
+		tc->c = c;
+		c->moddata[TriviaServ.modnum] = tc;
+		join_bot_to_chan(s_TriviaServ, tc->name, 0);
+		return tc;
+	} else {
+		return NULL;
+	}	
+}
+	
+int DelTChan(char *chan) {
+	hnode_t *hnode;
+	TriviaChan *tc;
+	
+	hnode = hash_lookup(tch, chan);
+	if (hnode) {
+		tc = hnode_get(hnode);
+		/* part the channel if its online */
+		if (FindTChan(tc->name)) OfflineTChan(findchan(tc->name));
+		hash_delete(tch, hnode);
+		free(tc);
+		hnode_destroy(hnode);
+		/* XXX del out of database */
+		return NS_SUCCESS;
+	} else {
+		return NS_FAILURE;
+	}
 }
 
 int SaveTChan (TriviaChan *tc) {
 	/* XXX todo */
+	return NS_SUCCESS;
+}
+
+
+int PartChan(char **av, int ac) {
+	Chans *c;
+	c = findchan(av[0]);
+	if (FindTChan(av[0]) && (c->cur_users == 2)) {
+		/* last user leaving, so we go offline on this channel */
+		OfflineTChan(c);
+	}
+	return NS_SUCCESS;
+}
+
+int NewChan(char **av, int ac) {
+	Chans *c;
+	c = findchan(av[0]);
+	OnlineTChan(c);
 	return NS_SUCCESS;
 }
