@@ -18,7 +18,7 @@
 **  USA
 **
 ** NeoStats CVS Identification
-** $Id: SecureServ.h 235 2004-02-19 22:17:18Z Mark $
+** $Id$
 */
 
 #ifndef TRIVIASERV_H
@@ -103,6 +103,8 @@ extern const char *tvs_help_start[];
 extern const char tvs_help_start_oneline[];
 extern const char *tvs_help_stop[];
 extern const char tvs_help_stop_oneline[];
+extern const char *tvs_help_qs[];
+extern const char tvs_help_qs_oneline[];
 /* TriviaUser.c */
 void tvs_addpoints(Client *u, TriviaChan *tc);
 int QuitUser(CmdParams* cmdparams);

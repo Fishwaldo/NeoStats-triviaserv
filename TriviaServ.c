@@ -61,7 +61,7 @@ int NewChan(CmdParams* cmdparams);
 static TriviaChan *OnlineTChan(Channel *c);
 int tvs_processtimer (void);
 
-static void tvs_set(CmdParams* cmdparams, TriviaChan *tc);
+static void tvs_quesset(CmdParams* cmdparams, TriviaChan *tc);
 
 static void tvs_newquest(TriviaChan *);
 static void tvs_ansquest(TriviaChan *);
@@ -157,7 +157,7 @@ int tvs_cmd_stop (CmdParams* cmdparams)
 	return NS_SUCCESS;
 }
 
-int tvs_cmd_sset (CmdParams* cmdparams)
+int tvs_cmd_qs (CmdParams* cmdparams)
 {
 	TriviaChan *tc;
 
@@ -171,7 +171,7 @@ int tvs_cmd_sset (CmdParams* cmdparams)
 		/* nope, get lost */
 		return NS_FAILURE;
 	}
-	tvs_set(cmdparams, tc);
+	tvs_quesset(cmdparams, tc);
 	return NS_SUCCESS;
 }
 
@@ -183,7 +183,7 @@ static bot_cmd tvs_commands[]=
 	{"HINT",	tvs_cmd_hint,	0, 	0,		NULL,			NULL},
 	{"START",	tvs_cmd_start,	0, 	0,		tvs_help_start,		tvs_help_start_oneline},
 	{"STOP",	tvs_cmd_stop,	0, 	0,		tvs_help_stop,		tvs_help_stop_oneline},
-	{"SSET",	tvs_cmd_sset,	0, 	0,		NULL,			NULL},
+	{"QS",		tvs_cmd_qs,	1, 	0,		tvs_help_qs,		tvs_help_qs_oneline},
 	{NULL,		NULL,		0, 	0,		NULL, 			NULL}
 };
 
@@ -201,7 +201,7 @@ static int tvs_catlist(CmdParams* cmdparams) {
 	irc_prefmsg (tvs_bot, cmdparams->source, "Question Categories (%d):", (int)list_count(qfl));
 	while (lnode != NULL) {
 		qf = lnode_get(lnode);
-		irc_prefmsg (tvs_bot, cmdparams->source, "%s) %s Questions: %d", qf->name, qf->description, (int) list_count(qf->QE));
+		irc_prefmsg (tvs_bot, cmdparams->source, "\2%s\2) %d Questions , %s", qf->name, (int) list_count(qf->QE), qf->description);
 		lnode = list_next(qfl, lnode);
 	}
 	irc_prefmsg (tvs_bot, cmdparams->source, "End Of List.");
@@ -674,7 +674,7 @@ TriviaChan *OnlineTChan(Channel *c) {
 		tc = hnode_get(tcn);
 		tc->c = c;
 		SetChannelModValue (c, tc);
-		irc_join (tvs_bot, tc->name, 0);
+		irc_join (tvs_bot, tc->name, "+o");
 		return tc;
 	}
 	return NULL;
@@ -724,73 +724,70 @@ int find_cat_name(const void *catnode, const void *name)
 	return (ircstrcasecmp(qf->name, name));
 }
 
-void tvs_set(CmdParams* cmdparams, TriviaChan *tc) 
+void tvs_quesset(CmdParams* cmdparams, TriviaChan *tc) 
 {
 	lnode_t *lnode;
 	QuestionFiles *qf;
-	if (cmdparams->ac >= 3 && !ircstrcasecmp(cmdparams->av[0], "CATEGORY")) {
-		if (cmdparams->ac == 5 && !ircstrcasecmp(cmdparams->av[1], "ADD")) {
-			lnode = list_find(qfl, cmdparams->av[2], find_cat_name);
-			if (lnode) {
-				if (list_find(tc->qfl, cmdparams->av[2], find_cat_name)) {
-					irc_prefmsg (tvs_bot, cmdparams->source, "Category %s is already set for this channel", cmdparams->av[2]);
-					return;
-				} else {
-					qf = lnode_get(lnode);
-					lnode_create_append(tc->qfl, qf);
-					irc_prefmsg (tvs_bot, cmdparams->source, "Added Category %s to this channel", cmdparams->av[2]);
-					irc_chanprivmsg (tvs_bot, tc->name, "%s added Category %s to the list of questions", cmdparams->source->name, cmdparams->av[2]);
-					SaveTChan(tc);
-					return;
-				}
-			} else {
-				irc_prefmsg (tvs_bot, cmdparams->source, "Can't Find Category %s. Try /msg %s catlist", cmdparams->av[2], tvs_bot->name);
+
+	if (cmdparams->ac == 5 && !ircstrcasecmp(cmdparams->av[0], "ADD")) {
+		lnode = list_find(qfl, cmdparams->av[1], find_cat_name);
+		if (lnode) {
+			if (list_find(tc->qfl, cmdparams->av[1], find_cat_name)) {
+				irc_prefmsg (tvs_bot, cmdparams->source, "Category %s is already set for this channel", cmdparams->av[1]);
 				return;
-			}
-		} else if (cmdparams->ac == 5 && !ircstrcasecmp(cmdparams->av[1], "DEL")) {
-			lnode = list_find(tc->qfl, cmdparams->av[2], find_cat_name);
-			if (lnode) {
-				list_delete(tc->qfl, lnode);
-				lnode_destroy(lnode);
-				/* dun delete the QF entry. */
-				irc_prefmsg (tvs_bot, cmdparams->source, "Deleted Category %s for this channel", cmdparams->av[2]);
-				irc_chanprivmsg (tvs_bot, tc->name, "%s deleted category %s for this channel", cmdparams->source->name, cmdparams->av[2]);
+			} else {
+				qf = lnode_get(lnode);
+				lnode_create_append(tc->qfl, qf);
+				irc_prefmsg (tvs_bot, cmdparams->source, "Added Category %s to this channel", cmdparams->av[1]);
+				irc_chanprivmsg (tvs_bot, tc->name, "%s added Category %s to the list of questions", cmdparams->source->name, cmdparams->av[1]);
 				SaveTChan(tc);
 				return;
-			} else {
-				irc_prefmsg (tvs_bot, cmdparams->source, "Couldn't find Category %s in the list. Try !set category list", cmdparams->av[2]);
-				return;
 			}
-		} else if (!ircstrcasecmp(cmdparams->av[1], "LIST")) {
-			if (!list_isempty(tc->qfl)) {
-				irc_prefmsg (tvs_bot, cmdparams->source, "Categories for this Channel are:");
-				lnode = list_first(tc->qfl);
-				while (lnode != NULL) {
-					qf = lnode_get(lnode);
-					irc_prefmsg (tvs_bot, cmdparams->source, "%s) %s", qf->name, qf->description);
-					lnode = list_next(tc->qfl, lnode);
-				}
-				irc_prefmsg (tvs_bot, cmdparams->source, "End of List.");
-				return;
-			} else {
-				irc_prefmsg (tvs_bot, cmdparams->source, "Using Random Categories for this channel");
-				return;
-			}
-		} else if (!ircstrcasecmp(cmdparams->av[1], "RESET")) {
-			while (!list_isempty(tc->qfl)) {
-				list_destroy_nodes(tc->qfl);
-			}
-			irc_prefmsg (tvs_bot, cmdparams->source, "Reset the Question Catagories to Default in %s", tc->name);
-			irc_chanprivmsg (tvs_bot, tc->name, "%s reset the Question Categories to Default", cmdparams->source->name);
+		} else {
+			irc_prefmsg (tvs_bot, cmdparams->source, "Can't Find Category %s. Try /msg %s catlist", cmdparams->av[1], tvs_bot->name);
+			return;
+		}
+	} else if (cmdparams->ac == 5 && !ircstrcasecmp(cmdparams->av[0], "DEL")) {
+		lnode = list_find(tc->qfl, cmdparams->av[1], find_cat_name);
+		if (lnode) {
+			list_delete(tc->qfl, lnode);
+			lnode_destroy(lnode);
+			/* dun delete the QF entry. */
+			irc_prefmsg (tvs_bot, cmdparams->source, "Deleted Category %s for this channel", cmdparams->av[1]);
+			irc_chanprivmsg (tvs_bot, tc->name, "%s deleted category %s for this channel", cmdparams->source->name, cmdparams->av[1]);
 			SaveTChan(tc);
 			return;
 		} else {
-			irc_prefmsg (tvs_bot, cmdparams->source, "Syntax Error. /msg %s help !set", tvs_bot->name);
+			irc_prefmsg (tvs_bot, cmdparams->source, "Couldn't find Category %s in the list. Try !set category list", cmdparams->av[1]);
+			return;
 		}
-		return;		
+	} else if (!ircstrcasecmp(cmdparams->av[0], "LIST")) {
+		if (!list_isempty(tc->qfl)) {
+			irc_prefmsg (tvs_bot, cmdparams->source, "Categories for this Channel are:");
+			lnode = list_first(tc->qfl);
+			while (lnode != NULL) {
+				qf = lnode_get(lnode);
+				irc_prefmsg (tvs_bot, cmdparams->source, "%s) %s", qf->name, qf->description);
+				lnode = list_next(tc->qfl, lnode);
+			}
+			irc_prefmsg (tvs_bot, cmdparams->source, "End of List.");
+			return;
+		} else {
+			irc_prefmsg (tvs_bot, cmdparams->source, "Using Random Categories for this channel");
+			return;
+		}
+	} else if (!ircstrcasecmp(cmdparams->av[0], "RESET")) {
+		while (!list_isempty(tc->qfl)) {
+			list_destroy_nodes(tc->qfl);
+		}
+		irc_prefmsg (tvs_bot, cmdparams->source, "Reset the Question Catagories to Default in %s", tc->name);
+		irc_chanprivmsg (tvs_bot, tc->name, "%s reset the Question Categories to Default", cmdparams->source->name);
+		SaveTChan(tc);
+		return;
 	} else {
 		irc_prefmsg (tvs_bot, cmdparams->source, "Syntax Error. /msg %s help !set", tvs_bot->name);
-	}		
+	}
+	return;		
 	irc_prefmsg (tvs_bot, cmdparams->source, "%s used Set", cmdparams->source->name);
 }
 
