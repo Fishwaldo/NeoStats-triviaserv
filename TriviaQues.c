@@ -103,7 +103,7 @@ int find_cat_name(const void *catnode, const void *name)
  * Adds/Removes/Lists or resets to default
  * Category Entries/Question Sets for a channel
 */
-void tvs_quesset(CmdParams* cmdparams, TriviaChan *tc, char *cn) 
+void tvs_quesset(CmdParams* cmdparams, TriviaChan *tc, char *qsn) 
 {
 	lnode_t *lnode;
 	QuestionFiles *qf;
@@ -111,9 +111,9 @@ void tvs_quesset(CmdParams* cmdparams, TriviaChan *tc, char *cn)
 
 	if (!cmdparams) {
 		/* Adds categories to channel on module loading */
-		lnode = list_find(qfl, cn, find_cat_name);
+		lnode = list_find(qfl, qsn, find_cat_name);
 		if (lnode) {
-			if (list_find(tc->qfl, cn, find_cat_name)) {
+			if (list_find(tc->qfl, qsn, find_cat_name)) {
 				return;
 			} else {
 				qf = lnode_get(lnode);
@@ -181,19 +181,15 @@ void tvs_quesset(CmdParams* cmdparams, TriviaChan *tc, char *cn)
 			return;
 		}
 	} else if (!ircstrcasecmp(cmdparams->av[0], "RESET")) {
-		/* first we remove all entries from Channel Question Sets DB */
 		tcqf = ns_calloc(sizeof(TriviaChannelQuestionFiles));
-		while (lnode != NULL) {
+		while (!list_isempty(tc->qfl)) {
+			lnode = list_first(tc->qfl);
 			qf = lnode_get(lnode);
 			ircsnprintf(tcqf->savename, MAXCHANLEN+QUESTSIZE+1, "%s%s", qf->name, tc->c->name);
 			DBADelete("CQSets", tcqf->savename);
-			lnode = list_next(tc->qfl, lnode);
-		}
-		ns_free(tcqf);
-		/* then remove the list nodes */
-		while (!list_isempty(tc->qfl)) {
 			list_destroy_nodes(tc->qfl);
 		}
+		ns_free(tcqf);
 		irc_prefmsg (tvs_bot, cmdparams->source, "Reset the Question Catagories to Default in %s", tc->name);
 		irc_chanprivmsg (tvs_bot, tc->name, "%s reset the Question Categories to Default", cmdparams->source->name);
 		return;
@@ -216,12 +212,13 @@ QuestionFiles *tvs_randomquestfile(TriviaChan *tc)
 	if (list_isempty(tc->qfl)) {
 		/* if the qfl for this chan is empty, use all qfl's */
 		if (list_count(qfl) > 1)
+		{
 			qfn=(unsigned)(rand()%((int)(list_count(qfl))));
-		else
+		} else {
 			qfn= 0;
+		}
 		/* ok, this is bad.. but sigh, not much we can do atm. */
 		lnode = list_first(qfl);
-		qf = lnode_get(lnode);
 		i = 0;
 		while (i != qfn) {
 			lnode = list_next(qfl, lnode);
@@ -241,7 +238,6 @@ QuestionFiles *tvs_randomquestfile(TriviaChan *tc)
 		qfn=(unsigned)(rand()%((int)(list_count(tc->qfl))));
 		/* ok, this is bad.. but sigh, not much we can do atm. */
 		lnode = list_first(tc->qfl);
-		qf = lnode_get(lnode);
 		i = 0;
 		while (i != qfn) {
 			lnode = list_next(tc->qfl, lnode);
@@ -275,7 +271,7 @@ void tvs_newquest(TriviaChan *tc) {
 
 	qf = tvs_randomquestfile(tc);
 restartquestionselection:
-	qn=(unsigned)(rand()%((int)(list_count(qf->QE)-1)));
+	qn=(unsigned)((rand()%((int)(list_count(qf->QE))))+1);
 	/* ok, this is bad.. but sigh, not much we can do atm. */
 	qnode = list_first(qf->QE);
 	qe = NULL;

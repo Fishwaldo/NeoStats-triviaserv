@@ -80,25 +80,25 @@ ModuleInfo module_info = {
 
 static bot_cmd tvs_commands[]=
 {
-	{"CHANS",	tvs_chans,		1,	NS_ULEVEL_OPER, tvs_help_chans,		tvs_help_chans_oneline },
-	{"CATLIST",	tvs_catlist,		0, 	0,		tvs_help_catlist,	tvs_help_catlist_oneline },
-	{"SCORE",	tvs_cmd_score,		0, 	0,		NULL,			NULL},
-	{"HINT",	tvs_cmd_hint,		0, 	0,		NULL,			NULL},
-	{"START",	tvs_cmd_start,		0, 	0,		tvs_help_start,		tvs_help_start_oneline,		CMD_FLAG_CHANONLY},
-	{"STOP",	tvs_cmd_stop,		0, 	0,		tvs_help_stop,		tvs_help_stop_oneline,		CMD_FLAG_CHANONLY},
-	{"QS",		tvs_cmd_qs,		1, 	0,		tvs_help_qs,		tvs_help_qs_oneline,		CMD_FLAG_CHANONLY},
-	{"SETPOINTS",	tvs_cmd_sp,		1, 	0,		tvs_help_sp,		tvs_help_sp_oneline,		CMD_FLAG_CHANONLY},
-	{"PUBLIC",	tvs_cmd_pc,		1, 	0,		tvs_help_pc,		tvs_help_pc_oneline,		CMD_FLAG_CHANONLY},
-	{"OPCHAN",	tvs_cmd_opchan,		1, 	0,		tvs_help_opchan,	tvs_help_opchan_oneline,	CMD_FLAG_CHANONLY},
-	{"RESETSCORES",	tvs_cmd_resetscores,	1, 	0,		tvs_help_resetscores,	tvs_help_resetscores_oneline,	CMD_FLAG_CHANONLY},
-	{NULL,		NULL,			0, 	0,		NULL, 			NULL}
+	{"CHANS",	tvs_chans,		1,	NS_ULEVEL_ADMIN,	tvs_help_chans,		tvs_help_chans_oneline },
+	{"CATLIST",	tvs_catlist,		0, 	0,			tvs_help_catlist,	tvs_help_catlist_oneline },
+	{"SCORE",	tvs_cmd_score,		0, 	0,			NULL,			NULL},
+	{"HINT",	tvs_cmd_hint,		0, 	0,			NULL,			NULL},
+	{"START",	tvs_cmd_start,		0, 	0,			tvs_help_start,		tvs_help_start_oneline,		CMD_FLAG_CHANONLY},
+	{"STOP",	tvs_cmd_stop,		0, 	0,			tvs_help_stop,		tvs_help_stop_oneline,		CMD_FLAG_CHANONLY},
+	{"QS",		tvs_cmd_qs,		1, 	0,			tvs_help_qs,		tvs_help_qs_oneline,		CMD_FLAG_CHANONLY},
+	{"SETPOINTS",	tvs_cmd_sp,		1, 	0,			tvs_help_sp,		tvs_help_sp_oneline,		CMD_FLAG_CHANONLY},
+	{"PUBLIC",	tvs_cmd_pc,		1, 	0,			tvs_help_pc,		tvs_help_pc_oneline,		CMD_FLAG_CHANONLY},
+	{"OPCHAN",	tvs_cmd_opchan,		1, 	0,			tvs_help_opchan,	tvs_help_opchan_oneline,	CMD_FLAG_CHANONLY},
+	{"RESETSCORES",	tvs_cmd_resetscores,	1, 	0,			tvs_help_resetscores,	tvs_help_resetscores_oneline,	CMD_FLAG_CHANONLY},
+	{NULL,		NULL,			NULL, 	NULL,			NULL, 			NULL}
 };
 
 static bot_setting tvs_settings[]=
 {
 	{"EXCLUSIONS", 		&TriviaServ.use_exc,		SET_TYPE_BOOLEAN,	0,	0, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_exclusions,	NULL,	(void *) 0},
-	{"DEFAULTPOINTS", 	&TriviaServ.defaultpoints,	SET_TYPE_INT,		1,	25, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_defaultpoints,	NULL,	(void *)1 },
-	{NULL,			NULL,				0,			0,	0,		0,			NULL,	NULL,				NULL,	NULL},
+	{"DEFAULTPOINTS", 	&TriviaServ.defaultpoints,	SET_TYPE_INT,		1,	25, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_defaultpoints,	NULL,	(void *) 1},
+	{NULL,			NULL,				NULL,			NULL,	NULL,		NULL,			NULL,	NULL,				NULL,	NULL},
 };
 
 /*
@@ -132,7 +132,7 @@ static BotInfo tvs_botinfo =
 	"TS", 
 	BOT_COMMON_HOST, 
 	"Trivia Bot", 	
-	BOT_FLAG_SERVICEBOT|BOT_FLAG_RESTRICT_OPERS, 
+	BOT_FLAG_SERVICEBOT,
 	tvs_commands, 
 	tvs_settings,
 };

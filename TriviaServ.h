@@ -167,7 +167,7 @@ int NewChan(CmdParams* cmdparams);
 /* TriviaQues.c */
 void tvs_parse_questions();
 int find_cat_name(const void *catnode, const void *name);
-void tvs_quesset(CmdParams* cmdparams, TriviaChan *tc, char *cn);
+void tvs_quesset(CmdParams* cmdparams, TriviaChan *tc, char *qsn);
 QuestionFiles *tvs_randomquestfile(TriviaChan *tc);
 void tvs_newquest(TriviaChan *tc);
 void tvs_ansquest(TriviaChan *tc);
