@@ -480,6 +480,7 @@ int tvs_clearscoretimers(int ct) {
 						}
 						break;
 				}
+				SaveTChan(tc);
 			}
 		}
 	}
