@@ -96,7 +96,7 @@ static bot_cmd tvs_commands[]=
 
 static bot_setting tvs_settings[]=
 {
-	{"EXCLUSIONS", 		&TriviaServ.use_exc,		SET_TYPE_BOOLEAN,	0,	0, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_exclusions,	NULL,	NULL},
+	{"EXCLUSIONS", 		&TriviaServ.use_exc,		SET_TYPE_BOOLEAN,	0,	0, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_exclusions,	NULL,	(void *) 0},
 	{"DEFAULTPOINTS", 	&TriviaServ.defaultpoints,	SET_TYPE_INT,		1,	25, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_defaultpoints,	NULL,	(void *)1 },
 	{NULL,			NULL,				0,			0,	0,		0,			NULL,	NULL,				NULL,	NULL},
 };
@@ -180,8 +180,10 @@ ModuleEvent module_events[] = {
 	{EVENT_CPRIVATE, ChanPrivmsg},		
 	{EVENT_EMPTYCHAN, EmptyChan},
 	{EVENT_NEWCHAN, NewChan},
-	{EVENT_QUIT, QuitUser},
+	{EVENT_QUIT, QuitNickUser},
 	{EVENT_KILL, KillUser},
+	{EVENT_NICK, QuitNickUser},
+	{EVENT_UMODE, UmodeUser},
 	{EVENT_NULL, NULL}
 };
 
@@ -197,9 +199,9 @@ int ModInit( void )
 	pcre_malloc = os_malloc;
 	pcre_free = os_free;
 #endif
+	ModuleConfig (tvs_settings);
 	TriviaServ.Questions = 0;
 	/* XXX todo */
-	TriviaServ.HintRatio = 3;
 	qfl = list_create(-1);
 	tch = hash_create(-1, 0, 0);
 	if (tvs_get_settings() == NS_FAILURE) 

@@ -40,7 +40,6 @@ struct TriviaServ {
 	char host[MAXHOST]; 
 	char realname[MAXREALNAME]; 
 	int use_exc;
-	int HintRatio;
 	long Questions;
 	int defaultpoints;
 } TriviaServ;
@@ -82,14 +81,16 @@ typedef struct TriviaChan {
 } TriviaChan;
 
 typedef struct TriviaChannelScore {
+	char savename[MAXCHANLEN+MAXNICK+1];
 	char cname[MAXCHANLEN];
+	char uname[MAXNICK];
 	int score;
 	int lastused;
 } TriviaChannelScore;
 
 typedef struct TriviaUser {
 	char lastusednick[MAXNICK];
-	char lastregnick[MAXNICK];
+	int lastusedreg;
 	int networkscore;
 	int lastused;
 	list_t *tcsl;
@@ -125,7 +126,9 @@ extern const char tvs_help_resetscores_oneline[];
 
 /* TriviaUser.c */
 void tvs_addpoints(Client *u, TriviaChan *tc);
-int QuitUser(CmdParams* cmdparams);
+TriviaChannelScore *GetUsersChannelScore (char *uname, char *cname);
+int UmodeUser(CmdParams* cmdparams);
+int QuitNickUser(CmdParams* cmdparams);
 int KillUser(CmdParams* cmdparams);
 int UserLeaving(Client *u);
 

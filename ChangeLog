@@ -2,6 +2,11 @@ YahtzeeServ Module for NeoStats Changelog.
 Fish (F), Mark (M), DeadNotBuried (D)
 ==============================================================================
 3.0.a3-dev
+ - check saved scores on Registering/Identifying for NickName if scores
+   attached to user previously, and add to current scores (D)
+ - Load previous channel/Network scores on correct answer and NickName is
+   registered (D)
+ - Save scores on Quit/Kill/Nick Change if Nickname is registered (D)
  - update to use CMD_FLAG_CHANONLY on appropriate commands (D)
  - Change Main and Alt Nickname (D)
  - add option to reset channel scores automatically at set periods (D)
