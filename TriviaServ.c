@@ -35,7 +35,6 @@
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif
-#include <error.h>
 #include <sys/dir.h>
 #include <sys/param.h>
 #endif
