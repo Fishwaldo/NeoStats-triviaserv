@@ -91,9 +91,9 @@ static bot_cmd tvs_commands[]=
 
 static bot_setting tvs_settings[]=
 {
-	{"USEEXCLUSIONS", 	&TriviaServ.use_exc,		SET_TYPE_BOOLEAN,	0,	0, 		NS_ULEVEL_ADMIN,	"Exclusions",		NULL,	tvs_help_set_exclusions,	NULL,	NULL},
-	{"DEFAULTPOINTS", 	&TriviaServ.defaultpoints,	SET_TYPE_INT,		1,	25, 		NS_ULEVEL_ADMIN,	"DefaultPoints",	NULL,	tvs_help_set_defaultpoints,	NULL,	(void *)1 },
-	{NULL,			NULL,				0,			0,	0,		0,			NULL,			NULL,	NULL,				NULL,	NULL},
+	{"EXCLUSIONS", 	&TriviaServ.use_exc,		SET_TYPE_BOOLEAN,	0,	0, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_exclusions,	NULL,	NULL},
+	{"DEFAULTPOINTS", 	&TriviaServ.defaultpoints,	SET_TYPE_INT,		1,	25, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_defaultpoints,	NULL,	(void *)1 },
+	{NULL,			NULL,				0,			0,	0,		0,			NULL,			NULL,				NULL,	NULL},
 };
 
 /*
