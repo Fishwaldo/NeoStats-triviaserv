@@ -32,12 +32,13 @@
 #ifdef WIN32
 #define MODULE_VERSION "3.0"
 #else
+#ifdef HAVE_STRINGS_H
 #include <strings.h>
+#endif
 #include <error.h>
 #include <sys/dir.h>
 #include <sys/param.h>
 #endif
-#include <sys/types.h>
 
 const char *questpath = "data/TSQuestions/";
 
@@ -54,11 +55,6 @@ int NewChan(CmdParams* cmdparams);
 static TriviaChan *OnlineTChan(Channel *c);
 int tvs_processtimer (void);
 
-static void tvs_sendhelp(Client* u);
-static void tvs_sendscore(Client* u, TriviaChan *);
-static void tvs_sendhint(Client* u, TriviaChan *);
-static void tvs_starttriv(Client* u, TriviaChan *);
-static void tvs_stoptriv(Client* u, TriviaChan *);
 static void tvs_set(CmdParams* cmdparams, TriviaChan *tc);
 
 static void tvs_newquest(TriviaChan *);
@@ -90,10 +86,98 @@ ModuleInfo module_info = {
 	0,
 };
 
+int tvs_cmd_score (CmdParams* cmdparams)
+{
+	TriviaChan *tc;
+
+	/* find if its our channel. */
+	tc = FindTChan(cmdparams->channel);
+	if (!tc) {
+		return NS_FAILURE;
+	}
+	irc_prefmsg (tvs_bot, cmdparams->source, "Score for %s in %s", cmdparams->source->name, tc->name);
+	return NS_SUCCESS;
+}
+
+int tvs_cmd_hint (CmdParams* cmdparams)
+{
+	TriviaChan *tc;
+
+	/* find if its our channel. */
+	tc = FindTChan(cmdparams->channel);
+	if (!tc) {
+		return NS_FAILURE;
+	}
+	irc_prefmsg (tvs_bot, cmdparams->source, "Hint for %s in %s", cmdparams->source->name, tc->name);
+	return NS_SUCCESS;
+}
+int tvs_cmd_start (CmdParams* cmdparams)
+{
+	TriviaChan *tc;
+
+	/* find if its our channel. */
+	tc = FindTChan(cmdparams->channel);
+	if (!tc) {
+		return NS_FAILURE;
+	}
+	if ((tc->publiccontrol == 1) && (!is_chanop(cmdparams->channel->name, cmdparams->source->name))) {
+		/* nope, get lost, silently exit */
+		return NS_FAILURE;
+	}
+	tc->active = 1;
+	irc_prefmsg (tvs_bot, cmdparams->source, "Starting Trivia in %s shortly", tc->name);
+	irc_chanprivmsg (tvs_bot, tc->name, "%s has activated Trivia. Get Ready for the first question!", cmdparams->source->name);
+	return NS_SUCCESS;
+}
+int tvs_cmd_stop (CmdParams* cmdparams)
+{
+	TriviaChan *tc;
+
+	/* find if its our channel. */
+	tc = FindTChan(cmdparams->channel);
+	if (!tc) {
+		return NS_FAILURE;
+	}
+	if ((tc->publiccontrol == 1) && (!is_chanop(cmdparams->channel->name, cmdparams->source->name))) {
+		/* nope, get lost, silently exit */
+		return NS_FAILURE;
+	}
+	tc->active = 0;
+	if (tc->curquest != NULL) {
+		tc->curquest = NULL;
+	}
+	irc_prefmsg (tvs_bot, cmdparams->source, "Trivia Stoped in %s", tc->name);
+	irc_chanprivmsg (tvs_bot, tc->name, "%s has stopped Trivia.", cmdparams->source->name);
+	return NS_SUCCESS;
+}
+
+int tvs_cmd_sset (CmdParams* cmdparams)
+{
+	TriviaChan *tc;
+
+	/* find if its our channel. */
+	tc = FindTChan(cmdparams->channel);
+	if (!tc) {
+		return NS_FAILURE;
+	}
+	/* finally, these ones are restricted always */
+	if (!is_chanop(cmdparams->channel->name, cmdparams->source->name)) {
+		/* nope, get lost */
+		return NS_FAILURE;
+	}
+	tvs_set(cmdparams, tc);
+	return NS_SUCCESS;
+}
+
 static bot_cmd tvs_commands[]=
 {
 	{"CHANS",	tvs_chans,		1,	NS_ULEVEL_OPER, tvs_help_chans,		tvs_help_chans_oneline },
 	{"CATLIST", tvs_catlist,	0, 	0,				tvs_help_catlist,	tvs_help_catlist_oneline },
+	{"SCORE",	tvs_cmd_score,	0, 	0,				NULL,	NULL},
+	{"HINT",	tvs_cmd_hint,	0, 	0,				NULL,	NULL},
+	{"START",	tvs_cmd_start,	0, 	0,				NULL,	NULL},
+	{"STOP",	tvs_cmd_stop,	0, 	0,				NULL,	NULL},
+	{"SSET",	tvs_cmd_sset,	0, 	0,				NULL,	NULL},
 	{NULL,		NULL,			0, 	0,				NULL, 				NULL}
 };
 
@@ -134,7 +218,7 @@ static int tvs_chans(CmdParams* cmdparams) {
 			return NS_FAILURE;
 		}
 		if (FindTChan(c)) {
-			irc_prefmsg (tvs_bot, cmdparams->source, "Error: That Channel already exists in the database");
+			irc_prefmsg (tvs_bot, cmdparams->source, "Error: Channel already exists in the database");
 			return NS_FAILURE;
 		}
 		tc = NewTChan(c);
@@ -194,45 +278,6 @@ int ChanPrivmsg (CmdParams* cmdparams)
 	tc = FindTChan(cmdparams->channel);
 	if (!tc) {
 		return NS_FAILURE;
-	}
-	/* if first char is a ! its a command */
-	if (cmdparams->param[0] == '*') {
-		if (!ircstrcasecmp("*help", cmdparams->param)) {
-			tvs_sendhelp(cmdparams->source);
-			return NS_SUCCESS;
-		} 
-		if (!ircstrcasecmp("*score", cmdparams->param)) {
-			tvs_sendscore(cmdparams->source, tc);
-			return NS_SUCCESS;
-		} 
-		if (!ircstrcasecmp("*hint", cmdparams->param)) {
-			tvs_sendhint(cmdparams->source, tc);
-			return NS_SUCCESS;
-		}
-		/* if we get here, then the following commands are limited if publiccontrol is enabled */
-		if ((tc->publiccontrol == 1) && (!is_chanop(cmdparams->channel->name, cmdparams->source->name))) {
-			/* nope, get lost, silently exit */
-			return NS_FAILURE;
-		}
-		if (!ircstrcasecmp("*start", cmdparams->param)) {
-			tvs_starttriv(cmdparams->source, tc);
-			return NS_SUCCESS;
-		} 
-		if (!ircstrcasecmp("*stop", cmdparams->param)) {
-			tvs_stoptriv(cmdparams->source, tc);
-			return NS_SUCCESS;
-		}
-		/* finally, these ones are restricted always */
-		if (!is_chanop(cmdparams->channel->name, cmdparams->source->name)) {
-			/* nope, get lost */
-			return NS_FAILURE;
-		}
-		if (!ircstrcasecmp("*set", cmdparams->av[0])) {
-			tvs_set(cmdparams, tc);
-			return NS_SUCCESS;
-		}
-		/* when we get here, just exit out */
-		return NS_SUCCESS;
 	}
 	tmpbuf = joinbuf(cmdparams->av, cmdparams->ac, 1);
 	strip_mirc_codes(tmpbuf);
@@ -574,13 +619,11 @@ TriviaChan *FindTChan(Channel* c)
 	return NULL;
 }
 
-TriviaChan *NewTChan(Channel *c) {
+TriviaChan *NewTChan(Channel *c) 
+{
 	TriviaChan *tc;
 	hnode_t *tcn;
 	
-	if (!c) {
-		return NULL;
-	}
 	if (c->moddata[TriviaServ.modnum] != NULL) {
 		nlog(LOG_WARNING, "Hrm, Chan %s already has a TriviaChanStruct with it", c->name);
 		return (TriviaChan *)c->moddata[TriviaServ.modnum];
@@ -641,9 +684,8 @@ TriviaChan *OnlineTChan(Channel *c) {
 		c->moddata[TriviaServ.modnum] = tc;
 		irc_join (tvs_bot, tc->name, 0);
 		return tc;
-	} else {
-		return NULL;
-	}	
+	}
+	return NULL;
 }
 	
 int DelTChan(char *chan) {
@@ -661,9 +703,8 @@ int DelTChan(char *chan) {
 		hnode_destroy(hnode);
 		DelRow("Channel", chan);
 		return NS_SUCCESS;
-	} else {
-		return NS_FAILURE;
 	}
+	return NS_FAILURE;
 }
 
 int SaveTChan (TriviaChan *tc) 
@@ -687,38 +728,6 @@ int NewChan(CmdParams* cmdparams)
 {
 	OnlineTChan(cmdparams->channel);
 	return NS_SUCCESS;
-}
-
-void tvs_sendhelp(Client* u) 
-{
-	irc_prefmsg (tvs_bot, u, "This is help");
-}
-
-void tvs_sendscore(Client* u, TriviaChan *tc) 
-{
-	irc_prefmsg (tvs_bot, u, "Score for %s in %s", u->name, tc->name);
-}
-
-void tvs_sendhint(Client* u, TriviaChan *tc) 
-{
-	irc_prefmsg (tvs_bot, u, "Hint for %s in %s", u->name, tc->name);
-}
-
-void tvs_starttriv(Client* u, TriviaChan *tc) 
-{
-	tc->active = 1;
-	irc_prefmsg (tvs_bot, u, "Starting Trivia in %s shortly", tc->name);
-	irc_chanprivmsg (tvs_bot, tc->name, "%s has activated Trivia. Get Ready for the first question!", u->name);
-}
-
-void tvs_stoptriv(Client* u, TriviaChan *tc) 
-{
-	tc->active = 0;
-	if (tc->curquest != NULL) {
-		tc->curquest = NULL;
-	}
-	irc_prefmsg (tvs_bot, u, "Trivia Stoped in %s", tc->name);
-	irc_chanprivmsg (tvs_bot, tc->name, "%s has stopped Trivia.", u->name);
 }
 
 int find_cat_name(const void *catnode, const void *name) 
