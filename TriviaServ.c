@@ -123,13 +123,12 @@ static int tvs_version(User * u, char **av, int ac)
 static int tvs_catlist(User *u, char **av, int ac) {
 	lnode_t *lnode;
 	QuestionFiles *qf;
-	int i = 1;
 	
 	lnode = list_first(qfl);
-	prefmsg(u->nick, s_TriviaServ, "Question Categories (%d):", list_count(qfl));
+	prefmsg(u->nick, s_TriviaServ, "Question Categories (%d):", (int)list_count(qfl));
 	while (lnode != NULL) {
 		qf = lnode_get(lnode);
-		prefmsg(u->nick, s_TriviaServ, "%d) %s - %s Questions: %d", i, qf->filename, qf->description, (int) list_count(qf->QE));
+		prefmsg(u->nick, s_TriviaServ, "%s) %s Questions: %d", qf->name, qf->description, (int) list_count(qf->QE));
 		lnode = list_next(qfl, lnode);
 	}
 	prefmsg(u->nick, s_TriviaServ, "End Of List.");
@@ -190,7 +189,7 @@ static int tvs_chans(User *u, char **av, int ac) {
 		while ((hnode = hash_scan_next(&hs)) != NULL) {
 			tc = hnode_get(hnode);
 			i++;
-			prefmsg(u->nick, s_TriviaServ, "%d) %s (%s) - Public? %s", i, tc->name, FindTChan(tc->name) ? "*" : "",  tc->publiccontrol ? "Yes" : "No");
+			prefmsg(u->nick, s_TriviaServ, "\1%d\1) %s (%s) - Public? %s", i, tc->name, FindTChan(tc->name) ? "*" : "",  tc->publiccontrol ? "Yes" : "No");
 		}
 		prefmsg(u->nick, s_TriviaServ, "End of List.");
 	} else {
@@ -343,6 +342,19 @@ void __ModFini()
 	TriviaChan *tc;
 	Chans *c;
 	
+	
+	hash_scan_begin(&hs, tch);
+	while ((hnodes = hash_scan_next(&hs)) != NULL) {
+		tc = hnode_get(hnodes);
+		if (tc->c) {
+			c = tc->c;
+			c->moddata[TriviaServ.modnum] = NULL;
+		}
+		list_destroy_nodes(tc->qfl);
+		hash_scan_delete(tch, hnodes);
+		hnode_destroy(hnodes);
+		free(tc);
+	}
 	lnodes = list_first(qfl);
 	while (lnodes != NULL) {
 		qf = lnode_get(lnodes);
@@ -368,17 +380,6 @@ void __ModFini()
 		lnode_destroy(lnodes);	
 		free(qf);
 		lnodes = ln2;
-	}
-	hash_scan_begin(&hs, tch);
-	while ((hnodes = hash_scan_next(&hs)) != NULL) {
-		tc = hnode_get(hnodes);
-		if (tc->c) {
-			c = tc->c;
-			c->moddata[TriviaServ.modnum] = NULL;
-		}
-		hash_scan_delete(tch, hnodes);
-		hnode_destroy(hnodes);
-		free(tc);
 	}
 };
 
@@ -435,6 +436,7 @@ int tvs_get_settings() {
 			if (GetData((void *)&tc->questtime, CFGINT, "Chans", row[i], "Timeout") < 0) {
 				tc->questtime = 60;
 			}
+			tc->qfl = list_create(-1);
 			tcn = hnode_create(tc);
 			hash_insert(tch, tcn, tc->name);
 			nlog(LOG_DEBUG1, LOG_MOD, "Loaded TC entry for Channel %s", tc->name);
@@ -470,6 +472,7 @@ void tvs_parse_questions() {
 			/* Do this post version 1.0 when we have download/update support */
 			strlcpy(qf->description, pathbuf, strlen(pathbuf)-2);
 			strcat(qf->description, "\0");
+			strlcpy(qf->name, qf->filename, strcspn(qf->filename, ".")+1);
 		} else {
 			/* couldn't load version, description. Bail out */
 			nlog(LOG_WARNING, LOG_MOD, "Couldn't Load Question File Header for %s", qf->filename);
@@ -538,6 +541,7 @@ TriviaChan *NewTChan(Chans *c) {
 		/* XXX */
 		tc->questtime = 60;
 		c->moddata[TriviaServ.modnum] = tc;
+		tc->qfl = list_create(-1);
 		tcn = hnode_create(tc);
 		hash_insert(tch, tcn, tc->name);
 		nlog(LOG_DEBUG1, LOG_MOD, "Created New TC entry for Channel %s", c->name);
@@ -597,6 +601,7 @@ int DelTChan(char *chan) {
 		/* part the channel if its online */
 		if (FindTChan(tc->name)) OfflineTChan(findchan(tc->name));
 		hash_delete(tch, hnode);
+		list_destroy_nodes(tc->qfl);
 		free(tc);
 		hnode_destroy(hnode);
 		/* XXX del out of database */
@@ -609,7 +614,7 @@ int DelTChan(char *chan) {
 int SaveTChan (TriviaChan *tc) {
 
 	SetData((void *)tc->publiccontrol, CFGINT, "Chans", tc->name, "Public");
-
+	/* XXX Save Category List */
 	return NS_SUCCESS;
 }
 
@@ -659,7 +664,81 @@ void tvs_stoptriv(char *who, TriviaChan *tc) {
 	prefmsg(who, s_TriviaServ, "Trivia Stoped in %s", tc->name);
 	privmsg(tc->name, s_TriviaServ, "%s has stopped Trivia.", who);
 }
+
+int find_cat_name(const void *catnode, const void *name) {
+	QuestionFiles *qf = (void *)catnode;
+	return (strcasecmp(qf->name, name));
+}
+	
+
+
 void tvs_set(char *who, TriviaChan *tc, char **av, int ac) {
+	lnode_t *lnode;
+	QuestionFiles *qf;
+	if (ac >= 3 && !strcasecmp(av[2], "CATEGORY")) {
+		if (ac == 5 && !strcasecmp(av[3], "ADD")) {
+			lnode = list_find(qfl, av[4], find_cat_name);
+			if (lnode) {
+				if (list_find(tc->qfl, av[4], find_cat_name)) {
+					prefmsg(who, s_TriviaServ, "Category %s is already set for this channel", av[4]);
+					return;
+				} else {
+					qf = lnode_get(lnode);
+					list_append(tc->qfl, lnode_create(qf));
+					prefmsg(who, s_TriviaServ, "Added Category %s to this channel", av[4]);
+					privmsg(tc->name, s_TriviaServ, "%s added Category %s to the list of questions", who, av[4]);
+					SaveTChan(tc);
+					return;
+				}
+			} else {
+				prefmsg(who, s_TriviaServ, "Can't Find Category %s. Try /msg %s catlist", av[4], s_TriviaServ);
+				return;
+			}
+		} else if (ac == 5 && !strcasecmp(av[3], "DEL")) {
+			lnode = list_find(tc->qfl, av[4], find_cat_name);
+			if (lnode) {
+				list_delete(tc->qfl, lnode);
+				lnode_destroy(lnode);
+				/* dun delete the QF entry. */
+				prefmsg(who, s_TriviaServ, "Deleted Category %s for this channel", av[4]);
+				privmsg(tc->name, s_TriviaServ, "%s deleted category %s for this channel", who, av[4]);
+				SaveTChan(tc);
+				return;
+			} else {
+				prefmsg(who, s_TriviaServ, "Couldn't find Category %s in the list. Try !set category list", av[4]);
+				return;
+			}
+		} else if (!strcasecmp(av[3], "LIST")) {
+			if (!list_isempty(tc->qfl)) {
+				prefmsg(who, s_TriviaServ, "Categories for this Channel are:");
+				lnode = list_first(tc->qfl);
+				while (lnode != NULL) {
+					qf = lnode_get(lnode);
+					prefmsg(who, s_TriviaServ, "%s) %s", qf->name, qf->description);
+					lnode = list_next(tc->qfl, lnode);
+				}
+				prefmsg(who, s_TriviaServ, "End of List.");
+				return;
+			} else {
+				prefmsg(who, s_TriviaServ, "Using Random Categories for this channel");
+				return;
+			}
+		} else if (!strcasecmp(av[3], "RESET")) {
+			while (!list_isempty(tc->qfl)) {
+				list_destroy_nodes(tc->qfl);
+			}
+			prefmsg(who, s_TriviaServ, "Reset the Question Catagories to Default in %s", tc->name);
+			privmsg(tc->name, s_TriviaServ, "%s reset the Question Categories to Default", who);
+			SaveTChan(tc);
+			return;
+		} else {
+			prefmsg(who, s_TriviaServ, "Syntax Error. /msg %s help !set", s_TriviaServ);
+		}
+		return;		
+	} else {
+		prefmsg(who, s_TriviaServ, "Syntax Error. /msg %s help !set", s_TriviaServ);
+	}
+			
 	prefmsg(who, s_TriviaServ, "%s used Set", who);
 }
 
@@ -705,10 +784,50 @@ void tvs_processtimer() {
 QuestionFiles *tvs_randomquestfile(TriviaChan *tc) {
 	lnode_t *lnode;
 	QuestionFiles *qf;
-	/* XXX. Select Question files for this chan */
-	lnode = list_first(qfl);
-	qf = lnode_get(lnode);
-	return qf;	
+	int qfn, i;
+	if (list_isempty(tc->qfl)) {
+		/* if the qfl for this chan is empty, use all qfl's */
+		qfn=(unsigned)(rand()%((int)(list_count(qfl))));
+		/* ok, this is bad.. but sigh, not much we can do atm. */
+		lnode = list_first(qfl);
+		qf = lnode_get(lnode);
+		i = 0;
+		while (i != qfn) {
+			qf = lnode_get(lnode);				
+			lnode = list_next(qfl, lnode);
+			i++;
+		}
+		if (qf != NULL) {
+			return qf;
+		} else {
+			nlog(LOG_WARNING, LOG_MOD, "Question File Selection (Random) for %s failed. Using first entry", tc->name);
+			lnode = list_first(qfl);
+			qf = lnode_get(lnode);
+			return qf;			
+		}
+	} else {
+		/* select a random question file */
+		qfn=(unsigned)(rand()%((int)(list_count(tc->qfl))));
+		/* ok, this is bad.. but sigh, not much we can do atm. */
+		lnode = list_first(tc->qfl);
+		qf = lnode_get(lnode);
+		i = 0;
+		while (i != qfn) {
+			qf = lnode_get(lnode);				
+			lnode = list_next(tc->qfl, lnode);
+			i++;
+		}
+		if (qf != NULL) {
+			return qf;
+		} else {
+			nlog(LOG_WARNING, LOG_MOD, "Question File Selection (Specific) for %s failed. Using first entry", tc->name);
+			lnode = list_first(tc->qfl);
+			qf = lnode_get(lnode);
+			return qf;			
+		}
+	}
+	/* to shut up the compilers */
+	return NULL;
 }	
 
 void tvs_newquest(TriviaChan *tc) {
@@ -936,7 +1055,8 @@ void obscure_question(TriviaChan *tc) {
    char *out;
    Questions *qe;
    int random, i;
-
+   int donecolor;
+   
    if (tc->curquest == NULL) {
 	nlog(LOG_WARNING, LOG_MOD, "curquest is missing for obscure_answer");
 	return;
@@ -946,17 +1066,21 @@ void obscure_question(TriviaChan *tc) {
       
    out = malloc(BUFSIZE+1);
    bzero(out, BUFSIZE+1);
-   strlcpy(out, "\0034,1", BUFSIZE);
+   strlcpy(out, "\00304,01", BUFSIZE);
    for(i=0;i < (int)strlen(qe->question);i++) {
       if(qe->question[i] == ' ') {
 	 random =  34 + (int) ((double)rand() * (91) / (RAND_MAX+1.0));
 	 if (random == 92) random = 65;
+	 /* no numbers, they screw with our colors */
+	 if (random >= 48 && random <= 57) {
+	 	random = random + 15;
+	 }
 	 /* insert same background/foreground color here */
-	 strncat(out, "\0031,1", BUFSIZE);
+	 strncat(out, "\00301,01", BUFSIZE);
 	 /* insert random char here */
 	 out[strlen(out)] = random;
 	 /* reset color back to standard for next word. */
-	 strncat(out, "\0034,1", BUFSIZE);
+	 strncat(out, "\00304,01", BUFSIZE);
       } else {
          /* just insert the char, its a word */
          out[strlen(out)] = qe->question[i];

@@ -55,6 +55,8 @@ struct QuestFile {
 	list_t *QE;
 	int version;
 	char description[QUESTSIZE];
+	/* actually just the striped filename */
+	char name[QUESTSIZE];
 };
 
 typedef struct QuestFile QuestionFiles;
@@ -79,6 +81,7 @@ struct TChans {
 	long lastquest;
 	long questtime;
 	Questions *curquest;
+	list_t *qfl;
 };
 
 typedef struct TChans TriviaChan;
