@@ -59,6 +59,9 @@ Questions/us1.qns -text
 Questions/uselessfactsandtrivia1.qns -text
 /README.TriviaServ -text
 /RELNOTES -text
+/TriviaChan.c -text
+/TriviaCmds.c -text
+/TriviaQues.c -text
 /TriviaServ.c -text
 /TriviaServ.h -text
 /TriviaServ_help.c -text

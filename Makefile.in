@@ -8,7 +8,7 @@ INSTALL_DATA = @INSTALL_DATA@
 DIRECTORY = @DIRINST@/modules/
 INCLUDES = -I@DIRINST@/include/ -I.
 
-SRCS = TriviaServ.c TriviaServ_help.c TriviaUser.c
+SRCS = TriviaServ.c TriviaServ_help.c TriviaUser.c TriviaChan.c TriviaCmds.c TriviaQues.c
 OBJS = ${SRCS:.c=.o}
 TARGET = triviaserv.so
 DOCS = README.TriviaServ

@@ -108,3 +108,13 @@ const char *tvs_help_sp[] = {
 	NULL
 };
 const char tvs_help_sp_oneline[] = "Set points for correct answer";
+
+const char *tvs_help_pc[] = {
+	"Syntax: (in Channel only)",
+	"        \2!PUBLIC <ON/OFF>\2",
+	"",
+	"This command Sets public access to start and stop",
+	"Trivia, If OFF , only Chanops can Start/Stop.",
+	NULL
+};
+const char tvs_help_pc_oneline[] = "Set public control";

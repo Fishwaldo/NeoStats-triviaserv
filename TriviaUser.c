@@ -30,6 +30,12 @@
 #include "neostats.h"	/* Neostats API */
 #include "TriviaServ.h"
 
+/*
+ * Adds points to user
+ *
+ * ToDo : 1. add network and channel points list
+ *           to keep channels and network points seperate
+*/
 void tvs_addpoints(Client *u, TriviaChan *tc) 
 {
 	TriviaScore *ts;
@@ -56,6 +62,16 @@ void tvs_addpoints(Client *u, TriviaChan *tc)
 	irc_chanprivmsg (tvs_bot, tc->name, "%s now has %d Points", u->name, ts->score);
 }	
 
+/*
+ * Free User Data
+ *
+ * ToDo : 1. Save Points between sessions if registered
+ *        2. find way to link nicks so multiple entries for
+ *		same user but different nicks, using duplicate scores
+ *		are not created (maybe check for saved scores on mode +r
+ *		and add them to the current users score, removing the
+ *		old from the database if they change nicks and identify again)
+*/
 int QuitUser (CmdParams* cmdparams) 
 {
 	TriviaScore *ts;
@@ -68,6 +84,9 @@ int QuitUser (CmdParams* cmdparams)
 	return NS_SUCCESS;
 }
 
+/*
+ * Same as QuitUser
+*/
 int KillUser (CmdParams* cmdparams) 
 {
 	TriviaScore *ts;

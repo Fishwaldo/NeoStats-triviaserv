@@ -95,6 +95,8 @@ typedef struct TScore TriviaScore;
 list_t *qfl;
 hash_t *tch;
 
+extern const char *questpath;
+
 /* TriviaServ_help.c */
 extern const char *tvs_about[];
 extern const char *tvs_help_set_exclusions[];
@@ -111,8 +113,45 @@ extern const char *tvs_help_qs[];
 extern const char tvs_help_qs_oneline[];
 extern const char *tvs_help_sp[];
 extern const char tvs_help_sp_oneline[];
+extern const char *tvs_help_pc[];
+extern const char tvs_help_pc_oneline[];
+
 /* TriviaUser.c */
 void tvs_addpoints(Client *u, TriviaChan *tc);
 int QuitUser(CmdParams* cmdparams);
 int KillUser(CmdParams* cmdparams);
+
+/* TriviaCmds.c */
+int tvs_cmd_score (CmdParams* cmdparams);
+int tvs_cmd_hint (CmdParams* cmdparams);
+int tvs_cmd_start (CmdParams* cmdparams);
+int tvs_cmd_stop (CmdParams* cmdparams);
+int tvs_cmd_qs (CmdParams* cmdparams);
+int tvs_cmd_sp (CmdParams* cmdparams);
+int tvs_cmd_pc (CmdParams* cmdparams);
+int tvs_catlist(CmdParams* cmdparams);
+int tvs_chans(CmdParams* cmdparams);
+
+/* TriviaChan.c */
+int LoadChannel( void *data );
+TriviaChan *NewTChan(Channel *c);
+TriviaChan *OfflineTChan(Channel *c);
+TriviaChan *OnlineTChan(Channel *c);
+int DelTChan(char *chan);
+int SaveTChan (TriviaChan *tc);
+int EmptyChan (CmdParams* cmdparams);
+int NewChan(CmdParams* cmdparams);
+
+/* TriviaQues.c */
+void tvs_parse_questions();
+int find_cat_name(const void *catnode, const void *name);
+void tvs_quesset(CmdParams* cmdparams, TriviaChan *tc);
+QuestionFiles *tvs_randomquestfile(TriviaChan *tc);
+void tvs_newquest(TriviaChan *tc);
+void tvs_ansquest(TriviaChan *tc);
+int tvs_doregex(Questions *qe, char *buf);
+void tvs_testanswer(Client* u, TriviaChan *tc, char *line);
+void do_hint(TriviaChan *tc);
+void obscure_question(TriviaChan *tc);
+
 #endif /* TRIVIASERV_H */
