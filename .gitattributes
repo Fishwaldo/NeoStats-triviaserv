@@ -5,6 +5,7 @@
 /TriviaServ.c -text
 /TriviaServ.h -text
 /TriviaServ_help.c -text
+/TriviaUser.c -text
 /configure -text
 /configure.in -text
 /install-sh -text

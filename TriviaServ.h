@@ -32,6 +32,10 @@
 #define ANSSIZE 200
 #define REGSIZE ANSSIZE + 20
 
+/** 
+ *  A string to hold the name of our bot
+ */
+char s_TriviaServ[MAXNICK];
 
 
 struct TriviaServ {
@@ -58,6 +62,7 @@ struct Quests {
 	char answer[ANSSIZE];
 	pcre *regexp;
 	int hints;
+	int points;
 };
 
 typedef struct Quests Questions;
@@ -73,6 +78,14 @@ struct TChans {
 };
 
 typedef struct TChans TriviaChan;
+
+struct TScore {
+	char nick[MAXNICK];
+	int score;
+	time_t lastused;
+};
+
+typedef struct TScore TriviaScore;
 
 list_t *ql;
 list_t *qfl;
@@ -90,5 +103,7 @@ extern const char *tvs_help_set_exclusions[];
 extern const char *tvs_help_chans[];
 extern const char tvs_help_chans_oneline[];
 
-
+/* TriviaUser.c */
+void tvs_addpoints(char *, TriviaChan *);
+int DelUser(char **av, int ac);
 #endif /* TRIVIASERV_H */

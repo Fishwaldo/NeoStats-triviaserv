@@ -60,15 +60,10 @@ static void tvs_newquest(TriviaChan *);
 static void tvs_ansquest(TriviaChan *);
 static int tvs_doregex(Questions *, char *);
 static void tvs_testanswer(char *origin, TriviaChan *tc, char *line);
-static void tvs_addpoints(char *who, TriviaChan *tc);
 
 static ModUser *tvs_bot;
 
 
-/** 
- *  A string to hold the name of our bot
- */
-char s_TriviaServ[MAXNICK];
 
 /** Module Info definition 
  *  Information about our module
@@ -195,6 +190,9 @@ int __ChanMessage(char *origin, char **argv, int argc)
 	TriviaChan *tc;
 	char *tmpbuf;
 	
+	if (argc <= 1) {
+		return NS_FAILURE;
+	}
 	/* find if its our channel. */
 	tc = FindTChan(argv[0]);
 	if (!tc) {
@@ -283,6 +281,8 @@ EventFnList __module_events[] = {
 	{EVENT_PARTCHAN, PartChan},
 	{EVENT_KICK, PartChan},
 	{EVENT_NEWCHAN, NewChan},
+	{EVENT_SIGNOFF, DelUser},
+	{EVENT_KILL, DelUser},
 	{NULL, NULL}
 };
 
@@ -335,10 +335,12 @@ void __ModFini()
 	lnodes = list_first(ql);
 	while (lnodes != NULL) {
 		qe = lnode_get(lnodes);
+#if 0
 		if (qe->question) {
 			free(qe->question);
 			free(qe->answer);
 		}
+#endif
 		list_delete(ql, lnodes);
 		ln2 = list_next(ql, lnodes);
 		lnode_destroy(lnodes);
@@ -348,8 +350,10 @@ void __ModFini()
 	hash_scan_begin(&hs, tch);
 	while ((hnodes = hash_scan_next(&hs)) != NULL) {
 		tc = hnode_get(hnodes);
-		c = tc->c;
-		c->moddata[TriviaServ.modnum] = NULL;
+		if (tc->c) {
+			c = tc->c;
+			c->moddata[TriviaServ.modnum] = NULL;
+		}
 		hash_scan_delete(tch, hnodes);
 		hnode_destroy(hnodes);
 		free(tc);
@@ -624,6 +628,7 @@ void tvs_processtimer() {
 				tvs_ansquest(tc);
 				continue;
 			}
+			/* hint processor */
 			if ((tc->questtime - timediff) < 15) {
 				privmsg(tc->name, s_TriviaServ, "Less than 15 Seconds Remaining, Hurry up!");
 				continue;
@@ -730,6 +735,8 @@ int tvs_doregex(Questions *qe, char *buf) {
 					return NS_FAILURE;
 				}
 				free(re);
+				/* XXXX Random Scores? */
+				qe->points = 10;
 				return NS_SUCCESS;
 			} 
 			/* some other error occured. Damn. */
@@ -757,6 +764,8 @@ int tvs_doregex(Questions *qe, char *buf) {
 			pcre_free_substring_list(subs);
 		}
 	}		
+	/* XXXX Random Scores? */
+	qe->points = 10;
 	return NS_SUCCESS;		
 	
 }
@@ -787,6 +796,3 @@ void tvs_testanswer(char *origin, TriviaChan *tc, char *line) {
 	}
 }
 
-void tvs_addpoints(char *who, TriviaChan *tc) {
-
-}

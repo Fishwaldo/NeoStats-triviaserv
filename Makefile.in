@@ -8,7 +8,7 @@ INSTALL_DATA = @INSTALL_DATA@
 DIRECTORY = @DIRINST@/dl/
 INCLUDES = -I@DIRINST@/include/ -I.
 
-SRCS= TriviaServ.c TriviaServ_help.c
+SRCS= TriviaServ.c TriviaServ_help.c TriviaUser.c
 OBJS= ${SRCS:.c=.o}
 TARGET= triviaserv.so
 DOCS=README.TriviaServ
@@ -51,5 +51,5 @@ dist:
 
 $(OBJS): Makefile
 
-TriviaServ.o:		TriviaServ.h TriviaServ.c modconfig.h
-TriviaServ.so:		TriviaServ.o TriviaServ_help.o
+TriviaServ.o:		TriviaServ.h TriviaServ.c modconfig.h TriviaUser.c
+TriviaServ.so:		TriviaServ.o TriviaServ_help.o TriviaUser.o
