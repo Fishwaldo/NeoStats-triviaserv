@@ -1101,3 +1101,11 @@ void obscure_question(TriviaChan *tc)
    irc_chanprivmsg (tvs_bot, tc->name, "%s", out);
    ns_free (out);
 }
+
+#ifdef WIN32 /* temp */
+
+int main (int argc, char **argv)
+{
+	return 0;
+}
+#endif
