@@ -27,25 +27,8 @@
  *  Trivia Question Procedures
  */
 
-#ifdef WIN32
-#include "modconfigwin32.h"
-#else
-#include "modconfig.h"
-#endif
 #include "neostats.h"	/* Neostats API */
 #include "TriviaServ.h"
-#ifdef HAVE_STRINGS_H
-#include <strings.h>
-#endif
-#ifndef WIN32
-#include <sys/dir.h>
-#include <sys/param.h>
-#endif
-
-#ifdef WIN32
-void *(*old_malloc)(size_t);
-void (*old_free) (void *);
-#endif
 
 /*
  * Loads question file offsets into memory

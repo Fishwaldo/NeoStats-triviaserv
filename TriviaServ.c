@@ -34,11 +34,10 @@
 #endif
 #include "neostats.h"	/* Neostats API */
 #include "TriviaServ.h"
-#ifdef HAVE_STRINGS_H
-#include <strings.h>
-#endif
-#ifndef WIN32
+#ifdef HAVE_SYS_DIR_H
 #include <sys/dir.h>
+#endif
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
 

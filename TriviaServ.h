@@ -45,7 +45,7 @@ struct TriviaServ {
 	int defaultpoints;
 } TriviaServ;
 
-struct QuestFile {
+typedef struct QuestionFiles {
 	FILE *fn;
 	char filename[MAXPATH];
 	list_t *QE;
@@ -53,11 +53,9 @@ struct QuestFile {
 	char description[QUESTSIZE];
 	/* actually just the striped filename */
 	char name[QUESTSIZE];
-};
+}QuestionFiles;
 
-typedef struct QuestFile QuestionFiles;
-
-struct Quests {
+typedef struct Questions {
 	long qn;
 	long offset;
 	char *question;
@@ -66,11 +64,9 @@ struct Quests {
 	pcre *regexp;
 	int hints;
 	int points;
-};
+}Questions;
 
-typedef struct Quests Questions;
-
-struct TChans {
+typedef struct TriviaChan {
 	char name[MAXCHANLEN];
 	Channel *c;
 	int publiccontrol;
@@ -80,17 +76,13 @@ struct TChans {
 	long questtime;
 	Questions *curquest;
 	list_t *qfl;
-};
+}TriviaChan;
 
-typedef struct TChans TriviaChan;
-
-struct TScore {
+typedef struct TriviaScore {
 	char nick[MAXNICK];
 	int score;
 	time_t lastused;
-};
-
-typedef struct TScore TriviaScore;
+}TriviaScore;
 
 list_t *qfl;
 hash_t *tch;
