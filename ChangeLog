@@ -2,5 +2,6 @@ YahtzeeServ Module for NeoStats Changelog.
 Fish (F), Mark (M), DeadNotBuried (D)
 ==============================================================================
 3.0.a3-dev
+ - add score tracking per channel (not saving yet though) (D)
  - add OPCHAN command for channel ops to set if Trivia gets Channel Op
    status on joining or not (D)

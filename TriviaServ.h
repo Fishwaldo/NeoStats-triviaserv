@@ -53,7 +53,7 @@ typedef struct QuestionFiles {
 	char description[QUESTSIZE];
 	/* actually just the striped filename */
 	char name[QUESTSIZE];
-}QuestionFiles;
+} QuestionFiles;
 
 typedef struct Questions {
 	long qn;
@@ -64,7 +64,7 @@ typedef struct Questions {
 	pcre *regexp;
 	int hints;
 	int points;
-}Questions;
+} Questions;
 
 typedef struct TriviaChan {
 	char name[MAXCHANLEN];
@@ -77,13 +77,23 @@ typedef struct TriviaChan {
 	int opchan;
 	Questions *curquest;
 	list_t *qfl;
-}TriviaChan;
+} TriviaChan;
 
-typedef struct TriviaScore {
-	char nick[MAXNICK];
+typedef struct TriviaChannelScore {
+	char *prev;
+	char cname[MAXCHANLEN];
 	int score;
-	time_t lastused;
-}TriviaScore;
+	int lastused;
+	char *next;
+} TriviaChannelScore;
+
+typedef struct TriviaUser {
+	char lastusednick[MAXNICK];
+	char lastregnick[MAXNICK];
+	int networkscore;
+	int lastused;
+	TriviaChannelScore *tcs;
+} TriviaUser;
 
 list_t *qfl;
 hash_t *tch;
@@ -115,6 +125,7 @@ extern const char tvs_help_opchan_oneline[];
 void tvs_addpoints(Client *u, TriviaChan *tc);
 int QuitUser(CmdParams* cmdparams);
 int KillUser(CmdParams* cmdparams);
+int UserLeaving(Client *u);
 
 /* TriviaCmds.c */
 int tvs_cmd_score (CmdParams* cmdparams);

@@ -98,6 +98,7 @@ int tvs_cmd_start (CmdParams* cmdparams)
 		return NS_FAILURE;
 	}
 	tc->active = 1;
+	tc->curquest = NULL;
 	irc_prefmsg (tvs_bot, cmdparams->source, "Starting Trivia in %s shortly", tc->name);
 	irc_chanprivmsg (tvs_bot, tc->name, "%s has activated Trivia. Get Ready for the first question!", cmdparams->source->name);
 	return NS_SUCCESS;
