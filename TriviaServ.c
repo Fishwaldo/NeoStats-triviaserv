@@ -410,6 +410,7 @@ int ModFini( void )
 			if (qe->question) {
 				ns_free (qe->question);
 				ns_free (qe->answer);
+				ns_free (qe->lasthint);
 			}
 			list_delete(qf->QE, ln3);
 			ln4 = list_next(qf->QE, ln3);
@@ -797,11 +798,9 @@ int tvs_processtimer(void)
 	hscan_t hs;
 	hnode_t *hnodes;
 	time_t timediff;	
-	static int newrand = 0;
 
-	/* occasionally reseed the random generator just for fun */
-	newrand++;
-	if (newrand > 30 || newrand == 1)
+	/* reseed the random generator */
+	if (!(rand() % 4)) 
 		srand((unsigned int)me.now);
 	hash_scan_begin(&hs, tch);
 	while ((hnodes = hash_scan_next(&hs)) != NULL) {
@@ -938,6 +937,7 @@ void tvs_ansquest(TriviaChan *tc) {
 	ns_free (qe->regexp);
 	ns_free (qe->question);
 	ns_free (qe->answer);
+	ns_free (qe->lasthint);
 	qe->question = NULL;
 	tc->curquest = NULL;
 }
@@ -963,6 +963,7 @@ int tvs_doregex(Questions *qe, char *buf) {
 	/* we copy the entire thing into the question struct, but it will end up as only the question after pcre does its thing */
 	qe->question = ns_calloc (QUESTSIZE);
 	qe->answer = ns_calloc (ANSSIZE);
+	qe->lasthint = ns_calloc (ANSSIZE);
 	strlcpy(qe->question, buf, QUESTSIZE);
 	os_memset (tmpbuf, 0, ANSSIZE);
 	/* no, its not a infinate loop */
@@ -999,6 +1000,7 @@ int tvs_doregex(Questions *qe, char *buf) {
 			/* if this is the first answer, this is the one we display in the channel */
 			if (qe->answer[0] == 0) {
 				strlcpy(qe->answer, subs[2], ANSSIZE);
+				strlcpy(qe->lasthint, subs[2], ANSSIZE);
 			}
 			/* tmpbuf will hold our eventual regular expression to find the answer in the channel */
 			if (tmpbuf[0] == 0) {
@@ -1049,34 +1051,82 @@ void tvs_testanswer(Client* u, TriviaChan *tc, char *line)
 */
 void do_hint(TriviaChan *tc) 
 {
-	char *out;
 	Questions *qe;
-	int random, num, i;
+	int random, num, i, twl, ws, we, swl, i2, swlt, pfw;
 
 	if (tc->curquest == NULL) {
 		nlog(LOG_WARNING, "curquest is missing for hint");
 		return;
 	}
 	qe = tc->curquest;
-	out = sstrdup(qe->answer);
 	num = strlen(qe->answer) / TriviaServ.HintRatio;
-	if (qe->hints > 0) {
+	if (qe->hints == 0) {
 		num = num * qe->hints;
-	}
-	for(i=0;i < (int)strlen(out);i++) {
-		if(out[i] != ' ') {
-			out[i] = '-';
+		for(i=0;i < (int)strlen(qe->lasthint);i++) {
+			if(qe->lasthint[i] != ' ' && qe->lasthint[i] != '/') {
+				qe->lasthint[i] = '-';
+			}
 		}
 	}
+	/*
+	 * might not be the best way, but works it seems
+	 * adds one letter per word per hint
+	*/
+	twl = ws = we = pfw = 0;	
+	for(i=0;i < ((int)strlen(qe->lasthint) + 1);i++) {
+		/*
+		 * split answers into words, to ensure letters added in each word
+		*/
+		if (qe->lasthint[i] != ' ' && qe->lasthint[i] != '/' && i != (int)strlen(qe->lasthint)) {
+			/*
+			 * don't do this if the full length has already
+			 * been counted, the len+1 is just to get the
+			 * last word to the 'else if' below
+			 * "/" set as word seperator as well, as it
+			 * stuffs up the hint system otherwise
+			*/
+			if (qe->answer[i] != '-') {
+				twl++;
+			}
+			if (!ws && pfw) {
+				ws = i;
+			}
+			we = i;
+		} else if (twl > qe->hints) { /* checks that there are more letters than hints */
+			/* pick a random number for the amount of
+			 * letters left in the word, then count through
+			 * the letters (not counting letters already replaced)
+			 * and replace the correct one
+			*/
+			swl= (rand() % (twl - qe->hints));
+			swlt= 0;
+			for (i2=ws ; i2 <= we ; i2++) {
+				if (qe->lasthint[i2] == '-' && qe->answer[i2] != '-') {
+					if (swl == swlt) {
+						qe->lasthint[i2] = qe->answer[i2];
+						twl= 0;
+						break;
+					}
+					swlt++;
+				}
+			}
+			pfw= 1;
+		}
+	}
+	
+	
+/* commented out old hint system
+
 	for(i=0;i < (num-1);i++) {
 		do {
 			random =  (int) ((double)rand() * (strlen(qe->answer) - 1 + 1.0) / (RAND_MAX+1.0));
 		} while(out[random] == ' ' || out[random] != '-');
 		out[random] = qe->answer[random];   
 	} 
+*/
 	qe->hints++;
-	irc_chanprivmsg (tvs_bot, tc->name, "Hint %d: %s", qe->hints, out);
-	ns_free (out);
+	irc_chanprivmsg (tvs_bot, tc->name, "Hint %d: %s", qe->hints, qe->lasthint);
+/*	ns_free (out); */
 }
 
 void obscure_question(TriviaChan *tc) 

@@ -61,6 +61,7 @@ struct Quests {
 	long offset;
 	char *question;
 	char *answer;
+	char *lasthint;
 	pcre *regexp;
 	int hints;
 	int points;
