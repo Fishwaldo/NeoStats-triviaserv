@@ -103,6 +103,7 @@ typedef struct TriviaUser {
 } TriviaUser;
 
 list_t *qfl;
+list_t *userlist;
 hash_t *tch;
 
 extern const char *questpath;
@@ -137,6 +138,7 @@ int UmodeUser(CmdParams* cmdparams);
 int QuitNickUser(CmdParams* cmdparams);
 int KillUser(CmdParams* cmdparams);
 int UserLeaving(Client *u);
+void SaveAllUserScores(void);
 
 /* TriviaCmds.c */
 int tvs_cmd_score (CmdParams* cmdparams);

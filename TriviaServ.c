@@ -203,6 +203,7 @@ int ModInit( void )
 	ModuleConfig (tvs_settings);
 	TriviaServ.Questions = 0;
 	qfl = list_create(-1);
+	userlist = list_create(-1);
 	tch = hash_create(-1, 0, 0);
 	if (tvs_get_settings() == NS_FAILURE) 
 		return NS_FAILURE;
@@ -229,6 +230,7 @@ int ModFini( void )
 	TriviaChan *tc;
 	Channel *c;
 
+	SaveAllUserScores();
 	hash_scan_begin(&hs, tch);
 	while ((hnodes = hash_scan_next(&hs)) != NULL) {
 		tc = hnode_get(hnodes);

@@ -64,6 +64,7 @@ void tvs_addpoints(Client *u, TriviaChan *tc)
 		}
 		tu->tcsl = list_create(-1);
 		SetUserModValue (u, tu);
+		lnode_create_append(userlist, u);
 	}
 	ln = list_first(tu->tcsl);
 	while (ln != NULL) {
@@ -107,6 +108,7 @@ void tvs_addpoints(Client *u, TriviaChan *tc)
 	irc_chanprivmsg (tvs_bot, tc->name, "%s now has %d Points in %s, and %d points network wide", u->name, ts->score, tc->c->name, tu->networkscore);
 	return;
 }	
+
 /*
  * Load Users Score For Channel If Exists
 */
@@ -183,6 +185,7 @@ int UserLeaving (Client *u) {
 	TriviaUser *tu;
 	TriviaChannelScore *ts;
 	lnode_t *ln;
+	Client *ul;
 	
 	tu = (TriviaUser *)GetUserModValue(u);
 	if (tu) {
@@ -211,8 +214,36 @@ int UserLeaving (Client *u) {
 			DBAStore( "Scores", ts->savename, ts, sizeof(TriviaChannelScore));
 			ns_free(ts);
 		}
+		ln = list_first(userlist);
+		while (ln != NULL) {
+			ul = lnode_get(ln);
+			if (ul == u) {
+				list_delete(userlist, ln);
+				lnode_destroy(ln);
+				break;
+			}
+			ln = list_next(userlist, ln);
+		}
 		ns_free(tu);
 		ClearUserModValue(u);
 	}
 	return NS_SUCCESS;
+}
+
+/*
+ * Save all User scores when module unloads etc
+*/
+void SaveAllUserScores(void) {
+	lnode_t *ln;
+	Client *u;
+
+	/*
+	 * looks like a perm loop, but UserLeaving(u)
+	 * removes entries from the list
+	*/
+	while (list_count(userlist) > 0) {
+		ln = list_first(userlist);
+		u = lnode_get(ln);
+		UserLeaving(u);
+	}
 }
