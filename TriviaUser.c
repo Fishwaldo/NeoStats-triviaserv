@@ -28,22 +28,15 @@
  */
 
 #include "neostats.h"	/* Neostats API */
-#include "modconfig.h"
 #include "TriviaServ.h"
-#include <strings.h>
-#include <error.h>
 
-
-
-
-void tvs_addpoints(char *who, TriviaChan *tc) {
-	User *u;
+void tvs_addpoints(Client *u, TriviaChan *tc) 
+{
 	TriviaScore *ts;
 	Questions *qe;
 	
-	u = finduser(who);
 	if (!u | !tc->curquest) {
-		nlog(LOG_WARNING, LOG_MOD, "Can't Find user %s for AddPoints?!", who);
+		nlog(LOG_WARNING, "Can't find user for AddPoints?!");
 		return;
 	}
 	
@@ -52,34 +45,28 @@ void tvs_addpoints(char *who, TriviaChan *tc) {
 		ts = u->moddata[TriviaServ.modnum];
 		/* XXX Load User? */		
 	} else {
-		if (!(u->Umode & UMODE_REGNICK)) {
+		if (!(u->user->Umode & UMODE_REGNICK)) {
 			/* not a registered user */
-			prefmsg(u->nick, s_TriviaServ, "If you want your score to be kept between sessions, you should register your nickname");
+			irc_prefmsg (tvs_bot, u, "If you want your score to be kept between sessions, you should register your nickname");
 		}
-		ts = malloc(sizeof(TriviaScore));
-		bzero(ts, sizeof(TriviaScore));
-		strlcpy(ts->nick, u->nick, MAXNICK);
+		ts = ns_calloc(sizeof(TriviaScore));
+		strlcpy(ts->nick, u->name, MAXNICK);
 		u->moddata[TriviaServ.modnum] = ts;
 	}
 
 	qe = tc->curquest;
 	ts->score = ts->score + qe->points;			
 	ts->lastused = me.now;
-	privmsg(tc->name, s_TriviaServ, "%s now has %d Points", u->nick, ts->score);
+	irc_chanprivmsg (tvs_bot, tc->name, "%s now has %d Points", u->name, ts->score);
 }	
 
-int DelUser(char **av, int ac) {
-	User *u;
+int DelUser (CmdParams* cmdparams) 
+{
 	TriviaScore *ts;
-	u = finduser(av[0]);
-	if (!u) {
-		nlog(LOG_WARNING, LOG_MOD, "Can't find user %s for signoff", av[0]);
-		return NS_FAILURE;
-	}
-	if (u->moddata[TriviaServ.modnum] != NULL) {
+	if (cmdparams->source->moddata[TriviaServ.modnum] != NULL) {
 		/* XXX Save User */
-		ts = u->moddata[TriviaServ.modnum];		
-		free(ts);
+		ts = cmdparams->source->moddata[TriviaServ.modnum];		
+		ns_free(ts);
 	}
 	return NS_SUCCESS;
 }

@@ -21,33 +21,22 @@
 ** $Id$
 */
 
-#include "modconfig.h"
-#include "TriviaServ.h"
+#include "neostats.h"	/* Neostats API */
 
-const char *tvs_help_about[] = {
+const char *tvs_about[] = {
 	"help",
 	NULL
 };
-const char tvs_help_about_oneline[] = "hello";
-
-const char *tvs_help_version[] = {
-	"help",
-	NULL
-};
-const char tvs_help_version_oneline[] = "hello";
-
-
 const char *tvs_help_set_exclusions[] = {
 	"help",
 	NULL
 };
 
-
 const char *tvs_help_chans[] = {
 	"chans",
 	NULL
 };
-const char tvs_help_chans_oneline[] = "Chans";
+const char tvs_help_chans_oneline[] = "Channel";
 
 const char *tvs_help_catlist[] = {
 	"catlist help",

@@ -28,172 +28,153 @@
  */
 
 #include "neostats.h"	/* Neostats API */
-#include "modconfig.h"
 #include "TriviaServ.h"
+#ifdef WIN32
+#define MODULE_VERSION "3.0"
+#else
 #include <strings.h>
 #include <error.h>
-#include <sys/types.h>
 #include <sys/dir.h>
 #include <sys/param.h>
+#endif
+#include <sys/types.h>
 
-
+const char *questpath = "data/TSQuestions/";
 
 static int tvs_get_settings();
 static void tvs_parse_questions();
-static int tvs_about();
-static int tvs_version();
-static int tvs_chans();
-static int tvs_catlist();
-static TriviaChan *FindTChan(char *);
-static TriviaChan *NewTChan(Chans *);
+static int tvs_chans(CmdParams* cmdparams);
+static int tvs_catlist(CmdParams* cmdparams);
+static TriviaChan *FindTChan(Channel *);
+static TriviaChan *NewTChan(Channel *);
 static int SaveTChan (TriviaChan *);
 static int DelTChan(char *);
-int PartChan(char **av, int ac);
-int NewChan(char **av, int ac);
-static TriviaChan *OnlineTChan(Chans *c);
+int PartChan(CmdParams* cmdparams);
+int NewChan(CmdParams* cmdparams);
+static TriviaChan *OnlineTChan(Channel *c);
+int tvs_processtimer (void);
 
-static void tvs_sendhelp(char *);
-static void tvs_sendscore(char *, TriviaChan *);
-static void tvs_sendhint(char *, TriviaChan *);
-static void tvs_starttriv(char *, TriviaChan *);
-static void tvs_stoptriv(char *, TriviaChan *);
-static void tvs_set(char *, TriviaChan *, char **, int );
+static void tvs_sendhelp(Client* u);
+static void tvs_sendscore(Client* u, TriviaChan *);
+static void tvs_sendhint(Client* u, TriviaChan *);
+static void tvs_starttriv(Client* u, TriviaChan *);
+static void tvs_stoptriv(Client* u, TriviaChan *);
+static void tvs_set(CmdParams* cmdparams, TriviaChan *tc);
 
 static void tvs_newquest(TriviaChan *);
 static void tvs_ansquest(TriviaChan *);
 static int tvs_doregex(Questions *, char *);
-static void tvs_testanswer(char *origin, TriviaChan *tc, char *line);
+static void tvs_testanswer(Client* u, TriviaChan *tc, char *line);
 static void do_hint(TriviaChan *tc);
 static void obscure_question(TriviaChan *tc);
-static ModUser *tvs_bot;
+Bot *tvs_bot;
 
+/** Copyright info */
+const char *ts_copyright[] = {
+	"Copyright (c) 1999-2004, NeoStats",
+	"http://www.neostats.net/",
+	NULL
+};
 
-
-/** Module Info definition 
- *  Information about our module
- *  This structure is required for your module to load and run on NeoStats
- */
-ModuleInfo __module_info = {
+/** Module info */
+ModuleInfo module_info = {
 	"TriviaServ",
 	"Triva Service for NeoStats.",
+	ts_copyright,
+	tvs_about,
+	NEOSTATS_VERSION,
 	MODULE_VERSION,
 	__DATE__,
-	__TIME__
-};
-Functions __module_functions[] = {
-	{NULL, NULL, 0}
+	__TIME__,
+	0,
+	0,
 };
 
 static bot_cmd tvs_commands[]=
 {
-	{"ABOUT",	tvs_about,	0, 	NS_ULEVEL_OPER,		tvs_help_about, 	tvs_help_about_oneline },
-	{"VERSION",	tvs_version,	0, 	NS_ULEVEL_OPER,		tvs_help_version,	tvs_help_version_oneline },
-	{"CHANS",	tvs_chans,	1,	NS_ULEVEL_OPER, 	tvs_help_chans,		tvs_help_chans_oneline },
-	{"CATLIST", 	tvs_catlist, 	0, 	0,			tvs_help_catlist, 	tvs_help_catlist_oneline },
-	{NULL,		NULL,		0, 	0,					NULL, 			NULL}
+	{"CHANS",	tvs_chans,		1,	NS_ULEVEL_OPER, tvs_help_chans,		tvs_help_chans_oneline },
+	{"CATLIST", tvs_catlist,	0, 	0,				tvs_help_catlist,	tvs_help_catlist_oneline },
+	{NULL,		NULL,			0, 	0,				NULL, 				NULL}
 };
 
 static bot_setting tvs_settings[]=
 {
-	{"NICK",		&s_TriviaServ,		SET_TYPE_NICK,		0, MAXNICK, 	NS_ULEVEL_ADMIN, "Nick",	NULL,	ns_help_set_nick },
-	{"USER",		&TriviaServ.user,	SET_TYPE_USER,		0, MAXUSER, 	NS_ULEVEL_ADMIN, "User",	NULL,	ns_help_set_user },
-	{"HOST",		&TriviaServ.host,	SET_TYPE_HOST,		0, MAXHOST, 	NS_ULEVEL_ADMIN, "Host",	NULL,	ns_help_set_host },
-	{"REALNAME",		&TriviaServ.realname,	SET_TYPE_REALNAME,	0, MAXREALNAME, NS_ULEVEL_ADMIN, "RealName",	NULL,	ns_help_set_realname },
 	{"USEEXCLUSIONS", 	&TriviaServ.use_exc,	SET_TYPE_BOOLEAN,	0, 0, 		NS_ULEVEL_ADMIN, "Exclusions",	NULL,	tvs_help_set_exclusions },
 	{NULL,			NULL,				0,					0, 0, 	0,				 NULL,			NULL,	NULL	},
 };
 
-static int tvs_about(User * u, char **av, int ac)
-{
-	privmsg_list(u->nick, s_TriviaServ, tvs_help_about);
-	return 1;
-}
-
-static int tvs_version(User * u, char **av, int ac)
-{
-	SET_SEGV_LOCATION();
-	prefmsg(u->nick, s_TriviaServ, "\2%s Version Information\2", s_TriviaServ);
-	prefmsg(u->nick, s_TriviaServ, "%s Version: %s Compiled %s at %s", __module_info.module_name,
-		__module_info.module_version, __module_info.module_build_date, __module_info.module_build_time);
-	prefmsg(u->nick, s_TriviaServ, "http://www.neostats.net");
-	prefmsg(u->nick, s_TriviaServ, "Loaded %ld Questions out of %ld files", TriviaServ.Questions, (long)list_count(qfl));
-	return 1;
-}
-
-static int tvs_catlist(User *u, char **av, int ac) {
+static int tvs_catlist(CmdParams* cmdparams) {
 	lnode_t *lnode;
 	QuestionFiles *qf;
 	
 	lnode = list_first(qfl);
-	prefmsg(u->nick, s_TriviaServ, "Question Categories (%d):", (int)list_count(qfl));
+	irc_prefmsg (tvs_bot, cmdparams->source, "Question Categories (%d):", (int)list_count(qfl));
 	while (lnode != NULL) {
 		qf = lnode_get(lnode);
-		prefmsg(u->nick, s_TriviaServ, "%s) %s Questions: %d", qf->name, qf->description, (int) list_count(qf->QE));
+		irc_prefmsg (tvs_bot, cmdparams->source, "%s) %s Questions: %d", qf->name, qf->description, (int) list_count(qf->QE));
 		lnode = list_next(qfl, lnode);
 	}
-	prefmsg(u->nick, s_TriviaServ, "End Of List.");
+	irc_prefmsg (tvs_bot, cmdparams->source, "End Of List.");
 	return NS_SUCCESS;
 }
-static int tvs_chans(User *u, char **av, int ac) {
+static int tvs_chans(CmdParams* cmdparams) {
 	hscan_t hs;
 	hnode_t *hnode;
 	TriviaChan *tc;
-	Chans *c;
+	Channel *c;
 	int i;
 	
-	if (!ircstrcasecmp(av[2], "ADD")) {
-		if (ac < 5) {
-			prefmsg(u->nick, s_TriviaServ, "Invalid Syntax. /msg %s help chans", s_TriviaServ);
-			return NS_FAILURE;
+	if (!ircstrcasecmp(cmdparams->av[0], "ADD")) {
+		if (cmdparams->ac < 5) {
+			return NS_ERR_SYNTAX_ERROR;
 		}
-		c = findchan(av[3]);
+		c = find_chan (cmdparams->av[1]);
 		if (!c) {
-			prefmsg(u->nick, s_TriviaServ, "Error: Channel must be online");
+			irc_prefmsg (tvs_bot, cmdparams->source, "Error: Channel must be online");
 			return NS_FAILURE;
 		}
-		if (FindTChan(av[3])) {
-			prefmsg(u->nick, s_TriviaServ, "Error: That Channel already exists in the database");
+		if (FindTChan(c)) {
+			irc_prefmsg (tvs_bot, cmdparams->source, "Error: That Channel already exists in the database");
 			return NS_FAILURE;
 		}
 		tc = NewTChan(c);
 		if (!tc) {
-			prefmsg(u->nick, s_TriviaServ, "Error: Channel must be online");
+			irc_prefmsg (tvs_bot, cmdparams->source, "Error: Channel must be online");
 			return NS_FAILURE;
 		}
-		if (!ircstrcasecmp(av[4], "On")) {
+		if (!ircstrcasecmp(cmdparams->av[2], "On")) {
 			tc->publiccontrol = 1;
 		} else {
 			tc->publiccontrol = 0;
 		}
 		SaveTChan(tc);
-		prefmsg(u->nick, s_TriviaServ, "Added %s with public control set to %s", tc->name, tc->publiccontrol ? "On" : "Off");
-		chanalert(s_TriviaServ, "%s added %s with public control set to %s", u->nick, tc->name, tc->publiccontrol ? "On" : "Off");
-		join_bot_to_chan(s_TriviaServ, tc->name, 0);
-	} else if (!ircstrcasecmp(av[2], "DEL")) {
-		if (ac < 4) {
-			prefmsg(u->nick, s_TriviaServ, "Invalid Syntax. /msg %s help chans", s_TriviaServ);
-			return NS_FAILURE;
+		irc_prefmsg (tvs_bot, cmdparams->source, "Added %s with public control set to %s", tc->name, tc->publiccontrol ? "On" : "Off");
+		irc_chanalert (tvs_bot, "%s added %s with public control set to %s", cmdparams->source->name, tc->name, tc->publiccontrol ? "On" : "Off");
+		irc_join (tvs_bot, tc->name, 0);
+	} else if (!ircstrcasecmp(cmdparams->av[0], "DEL")) {
+		if (cmdparams->ac < 4) {
+			return NS_ERR_SYNTAX_ERROR;
 		}
-		if (DelTChan(av[3])) {
-			prefmsg(u->nick, s_TriviaServ, "Deleted %s out of Channel List", av[3]);
-			chanalert(s_TriviaServ, "%s deleted %s out of Channel List", u->nick, av[3]);
+		if (DelTChan(cmdparams->av[1])) {
+			irc_prefmsg (tvs_bot, cmdparams->source, "Deleted %s out of Channel List", cmdparams->av[1]);
+			irc_chanalert (tvs_bot, "%s deleted %s out of Channel List", cmdparams->source->name, cmdparams->av[1]);
 			return NS_SUCCESS;
 		} else {
-			prefmsg(u->nick, s_TriviaServ, "Cant find %s in channel list.", av[3]);
+			irc_prefmsg (tvs_bot, cmdparams->source, "Cant find %s in channel list.", cmdparams->av[1]);
 			return NS_FAILURE;
 		}
-	} else if (!ircstrcasecmp(av[2], "LIST")) {
-		prefmsg(u->nick, s_TriviaServ, "Trivia Chans:");
+	} else if (!ircstrcasecmp(cmdparams->av[0], "LIST")) {
+		irc_prefmsg (tvs_bot, cmdparams->source, "Trivia Channel:");
 		hash_scan_begin(&hs, tch);
 		i = 0;
 		while ((hnode = hash_scan_next(&hs)) != NULL) {
 			tc = hnode_get(hnode);
 			i++;
-			prefmsg(u->nick, s_TriviaServ, "\1%d\1) %s (%s) - Public? %s", i, tc->name, FindTChan(tc->name) ? "*" : "",  tc->publiccontrol ? "Yes" : "No");
+			irc_prefmsg (tvs_bot, cmdparams->source, "\1%d\1) %s (%s) - Public? %s", i, tc->name, FindTChan(tc->c) ? "*" : "",  tc->publiccontrol ? "Yes" : "No");
 		}
-		prefmsg(u->nick, s_TriviaServ, "End of List.");
+		irc_prefmsg (tvs_bot, cmdparams->source, "End of list.");
 	} else {
-		prefmsg(u->nick, s_TriviaServ, "Invalid Syntax. /msg %s help Chans", s_TriviaServ);
+		return NS_ERR_SYNTAX_ERROR;
 	}
 	return NS_SUCCESS;
 }
@@ -204,116 +185,121 @@ static int tvs_chans(User *u, char **av, int ac) {
  *  What do we do with messages in channels
  *  This is required if you want your module to respond to channel messages
  */
-int __ChanMessage(char *origin, char **argv, int argc)
+int ChanPrivmsg (CmdParams* cmdparams)
 {
 	TriviaChan *tc;
 	char *tmpbuf;
 	
-	if (argc <= 1) {
+	if (cmdparams->ac <= 1) {
 		return NS_FAILURE;
 	}
 	/* find if its our channel. */
-	tc = FindTChan(argv[0]);
+	tc = FindTChan(cmdparams->channel);
 	if (!tc) {
 		return NS_FAILURE;
 	}
 	/* if first char is a ! its a command */
-	if (argv[1][0] == '!') {
-		if (!ircstrcasecmp("!help", argv[1])) {
-			tvs_sendhelp(origin);
-		} else if (!ircstrcasecmp("!score", argv[1])) {
-			tvs_sendscore(origin, tc);
-		} else if (!ircstrcasecmp("!hint", argv[1])) {
-			tvs_sendhint(origin, tc);
+	if (cmdparams->av[1][0] == '!') {
+		if (!ircstrcasecmp("!help", cmdparams->av[1])) {
+			tvs_sendhelp(cmdparams->source);
+		} else if (!ircstrcasecmp("!score", cmdparams->av[1])) {
+			tvs_sendscore(cmdparams->source, tc);
+		} else if (!ircstrcasecmp("!hint", cmdparams->av[1])) {
+			tvs_sendhint(cmdparams->source, tc);
 		}
 		/* if we get here, then the following commands are limited if publiccontrol is enabled */
-		if ((tc->publiccontrol == 1) && (!is_chanop(argv[0], origin))) {
+		if ((tc->publiccontrol == 1) && (!is_chanop(cmdparams->av[0], cmdparams->source->name))) {
 			/* nope, get lost, silently exit */
 			return NS_FAILURE;
 		}
-		if (!ircstrcasecmp("!start", argv[1])) {
-			tvs_starttriv(origin, tc);
-		} else if (!ircstrcasecmp("!stop", argv[1])) {
-			tvs_stoptriv(origin, tc);
+		if (!ircstrcasecmp("!start", cmdparams->av[1])) {
+			tvs_starttriv(cmdparams->source, tc);
+		} else if (!ircstrcasecmp("!stop", cmdparams->av[1])) {
+			tvs_stoptriv(cmdparams->source, tc);
 		}
 		/* finally, these ones are restricted always */
-		if (!is_chanop(argv[0], origin)) {
+		if (!is_chanop(cmdparams->av[0], cmdparams->source->name)) {
 			/* nope, get lost */
 			return NS_FAILURE;
 		}
-		if (!ircstrcasecmp("!set", argv[1])) {
-			tvs_set(origin, tc, argv, argc);
+		if (!ircstrcasecmp("!set", cmdparams->av[0])) {
+			tvs_set(cmdparams, tc);
 		}
 		/* when we get here, just exit out */
 		return NS_SUCCESS;
 	}
-	tmpbuf = joinbuf(argv, argc, 1);
+	tmpbuf = joinbuf(cmdparams->av, cmdparams->ac, 1);
 	strip_mirc_codes(tmpbuf);
-	tvs_testanswer(origin, tc, tmpbuf);
-	free(tmpbuf);
-	return 1;
+	tvs_testanswer(cmdparams->source, tc, tmpbuf);
+	ns_free (tmpbuf);
+	return NS_SUCCESS;
 }
 
-/** Online event processing
- *  What we do when we first come online
+/** BotInfo */
+static BotInfo tvs_botinfo = 
+{
+	"Trivia", 
+	"Trivia1", 
+	"TS", 
+	BOT_COMMON_HOST, 
+	"Trivia Bot", 	
+	BOT_FLAG_SERVICEBOT|BOT_FLAG_RESTRICT_OPERS, 
+	tvs_commands, 
+	tvs_settings,
+};
+
+/** @brief ModSynch
+ *
+ *  Startup handler
+ *
+ *  @param none
+ *
+ *  @return NS_SUCCESS if suceeds else NS_FAILURE
  */
-static int Online(char **av, int ac)
+
+int ModSynch (void)
 {
 	hscan_t hs;
 	hnode_t *hnodes;
 	TriviaChan *tc;
-	Chans *c;
+	Channel *c;
 	
 	/* Introduce a bot onto the network */
-	tvs_bot = init_mod_bot(s_TriviaServ, TriviaServ.user, TriviaServ.host, TriviaServ.realname,
-	                        services_bot_modes, BOT_FLAG_RESTRICT_OPERS, tvs_commands, tvs_settings, __module_info.module_name);
-	if (tvs_bot) {
-		TriviaServ.isonline = 1;
+	tvs_bot = init_bot (&tvs_botinfo);
+	if (!tvs_bot) {
+		return NS_FAILURE;
 	}
-
 	hash_scan_begin(&hs, tch);
 	while ((hnodes = hash_scan_next(&hs)) != NULL) {
 		tc = hnode_get(hnodes);
-		c = findchan(tc->name);
+		c = find_chan (tc->name);
 		if (c) {
 			OnlineTChan(c);
 		}
 	}
-
 	/* kick of the question/answer timer */
-	add_mod_timer("tvs_processtimer", "TriviaServ Process Timer",  __module_info.module_name, 10);
+	add_timer (TIMER_TYPE_INTERVAL, tvs_processtimer, "tvs_processtimer", 10);
+	return NS_SUCCESS;
+}
 
-	return 1;
-};
-
-/** Module event list
- *  What events we will act on
- *  This is required if you want your module to respond to events on IRC
- *  see events.h for a list of all events available
- */
-EventFnList __module_events[] = {
-	{EVENT_ONLINE, Online},
-	{EVENT_PARTCHAN, PartChan},
+/** Module Events */
+ModuleEvent module_events[] = {
+	{EVENT_CPRIVATE, ChanPrivmsg},		
+	{EVENT_PART, PartChan},
 	{EVENT_KICK, PartChan},
 	{EVENT_NEWCHAN, NewChan},
-	{EVENT_SIGNOFF, DelUser},
+	{EVENT_QUIT, DelUser},
 	{EVENT_KILL, DelUser},
-	{NULL, NULL}
+	{EVENT_NULL, NULL}
 };
 
 /** Init module
  *  Required if you need to do initialisation of your module when
  *  first loaded
  */
-int __ModInit(int modnum, int apiver)
+int ModInit (Module *mod_ptr)
 {
-	/* Check that our compiled version if compatible with the calling version of NeoStats */
-	if(	ircstrncasecmp (me.version, NEOSTATS_VERSION, VERSIONSIZE) !=0) {
-		return NS_ERR_VERSION;
-	}
-	strlcpy(s_TriviaServ, "TriviaServ", MAXNICK);
-	TriviaServ.isonline = 0;
-	TriviaServ.modnum = modnum;
+	TriviaServ.modnum = mod_ptr->modnum;
 	TriviaServ.Questions = 0;
 	/* XXX todo */
 	TriviaServ.HintRatio = 3;
@@ -322,14 +308,13 @@ int __ModInit(int modnum, int apiver)
 	if (tvs_get_settings() == NS_FAILURE) 
 		return NS_FAILURE;
 	tvs_parse_questions();
-
-	return 1;
+	return NS_SUCCESS;
 }
 
 /** Init module
  *  Required if you need to do cleanup of your module when it ends
  */
-void __ModFini()
+void ModFini()
 {
 	lnode_t *lnodes, *ln2, *ln3, *ln4;
 	hnode_t *hnodes;
@@ -337,7 +322,7 @@ void __ModFini()
 	Questions *qe;
 	hscan_t hs;
 	TriviaChan *tc;
-	Chans *c;
+	Channel *c;
 	
 	
 	hash_scan_begin(&hs, tch);
@@ -350,7 +335,7 @@ void __ModFini()
 		list_destroy_nodes(tc->qfl);
 		hash_scan_delete(tch, hnodes);
 		hnode_destroy(hnodes);
-		free(tc);
+		ns_free (tc);
 	}
 	lnodes = list_first(qfl);
 	while (lnodes != NULL) {
@@ -362,33 +347,33 @@ void __ModFini()
 		while (ln3 != NULL) {
 			qe = lnode_get(ln3);
 			if (qe->question) {
-				free(qe->question);
-				free(qe->answer);
+				ns_free (qe->question);
+				ns_free (qe->answer);
 			}
 			list_delete(qf->QE, ln3);
 			ln4 = list_next(qf->QE, ln3);
 			lnode_destroy(ln3);
-			free(qe);
+			ns_free (qe);
 			ln3 = ln4;
 		}
 
 		list_delete(qfl, lnodes);
 		ln2 = list_next(qfl, lnodes);
 		lnode_destroy(lnodes);	
-		free(qf);
+		ns_free (qf);
 		lnodes = ln2;
 	}
 };
 
-int file_select (struct direct *entry) {
+int file_select (const struct direct *entry) {
 	char *ptr;
-	if ((strcmp(entry->d_name, ".")==0) || (strcmp(entry->d_name, "..")==0)) {
+	if ((strcasecmp(entry->d_name, ".")==0) || (strcasecmp(entry->d_name, "..")==0)) {
 		return 0;
 	}
 	/* check filename extension */
 	ptr = rindex(entry->d_name, '.');
 	if ((ptr != NULL) && 
-		(strcmp(ptr, ".qns") == 0)) {
+		(strcasecmp(ptr, ".qns") == 0)) {
 			return NS_SUCCESS;
 	}
 	return 0;	
@@ -402,41 +387,34 @@ int tvs_get_settings() {
 	hnode_t *tcn;
 	int i, count;
 	struct direct **files;
-	
-	/* temp */
-	ircsnprintf(TriviaServ.user, MAXUSER, "Trivia");
-	ircsnprintf(TriviaServ.host, MAXHOST, "Trivia.com");
-	ircsnprintf(TriviaServ.realname, MAXREALNAME, "Trivia Bot");
-
 
 	/* Scan the questions directory for question files, and create the hashs */
-	count = scandir("data/TSQuestions/", &files, file_select, alphasort);
+	count = scandir (questpath, &files, file_select, alphasort);
 	if (count <= 0) {
-		nlog(LOG_CRITICAL, LOG_MOD, "No Question Files Found");
+		nlog(LOG_CRITICAL, "No Question Files Found");
 		return NS_FAILURE;
 	}
 	for (i = 1; i<count; i++) {
-		qf = malloc(sizeof(QuestionFiles));
-		strncpy(qf->filename, files[i-1]->d_name, MAXPATH);
+		qf = ns_malloc (sizeof(QuestionFiles));
+		strlcpy(qf->filename, files[i-1]->d_name, MAXPATH);
 		qf->fn = 0;
 		qf->QE = list_create(-1);
 		node = lnode_create(qf);
 		list_append(qfl, node);
 	}
 	/* load the channel list */
-	if (GetTableData("Chans", &row) > 0) {
+	if (GetTableData("Channel", &row) > 0) {
 		for (i = 0; row[i] != NULL; i++) {
-			tc = malloc(sizeof(TriviaChan));
-			bzero(tc, sizeof(TriviaChan))
-			ircsnprintf(tc->name, CHANLEN, row[i]);
-			GetData((void *)&tc->publiccontrol, CFGINT, "Chans", row[i], "Public");
-			if (GetData((void *)&tc->questtime, CFGINT, "Chans", row[i], "Timeout") < 0) {
+			tc = ns_calloc (sizeof(TriviaChan));
+			ircsnprintf(tc->name, MAXCHANLEN, row[i]);
+			GetData((void *)&tc->publiccontrol, CFGINT, "Channel", row[i], "Public");
+			if (GetData((void *)&tc->questtime, CFGINT, "Channel", row[i], "Timeout") < 0) {
 				tc->questtime = 60;
 			}
 			tc->qfl = list_create(-1);
 			tcn = hnode_create(tc);
 			hash_insert(tch, tcn, tc->name);
-			nlog(LOG_DEBUG1, LOG_MOD, "Loaded TC entry for Channel %s", tc->name);
+			dlog (DEBUG1, "Loaded TC entry for Channel %s", tc->name);
 		}
 	}
 	return NS_SUCCESS;
@@ -453,12 +431,12 @@ void tvs_parse_questions() {
 	qfnode = list_first(qfl);
 	while (qfnode != NULL) {
 		qf = lnode_get(qfnode);
-		ircsnprintf(pathbuf, MAXPATH, "data/TSQuestions/%s", qf->filename);
-		nlog(LOG_DEBUG2, LOG_MOD, "Opening %s for reading offsets", pathbuf);
+		ircsnprintf(pathbuf, MAXPATH, "%s/%s", questpath, qf->filename);
+		dlog (DEBUG2, "Opening %s for reading offsets", pathbuf);
 		qf->fn = fopen(pathbuf, "r");
 		/*  if we can't open it, bail out */
 		if (qf->fn == NULL) {
-			nlog(LOG_WARNING, LOG_MOD, "Couldn't Open Question File %s for Reading offsets: %s", qf->filename, strerror(errno));
+			nlog(LOG_WARNING, "Couldn't Open Question File %s for Reading offsets: %s", qf->filename, strerror(errno));
 			qfnode = list_next(qfl, qfnode);
 			continue;
 		}
@@ -472,7 +450,7 @@ void tvs_parse_questions() {
 			strlcpy(qf->name, qf->filename, strcspn(qf->filename, ".")+1);
 		} else {
 			/* couldn't load version, description. Bail out */
-			nlog(LOG_WARNING, LOG_MOD, "Couldn't Load Question File Header for %s", qf->filename);
+			nlog(LOG_WARNING, "Couldn't Load Question File Header for %s", qf->filename);
 			qfnode = list_next(qfl, qfnode);
 			continue;
 		}
@@ -483,8 +461,7 @@ void tvs_parse_questions() {
 		/* THIS IS DAMN SLOW. ANY HINTS TO SPEED UP? */
 		while (fgets(pathbuf, MAXPATH, qf->fn) != NULL) {
 			i++;
-			qe = malloc(sizeof(Questions));
-//			bzero(qe, sizeof(Questions));
+			qe = ns_malloc (sizeof(Questions));
 			qe->qn = i;
 			qe->offset = ftell(qf->fn);
 			qenode = lnode_create(qe);
@@ -492,21 +469,18 @@ void tvs_parse_questions() {
 		}
 			
 		/* leave the filehandle open for later */
-		nlog(LOG_NOTICE, LOG_MOD, "Finished Reading %s for Offsets (%ld)", qf->filename, i);
+		nlog(LOG_NOTICE, "Finished Reading %s for Offsets (%ld)", qf->filename, i);
 		qfnode = list_next(qfl, qfnode);
 		TriviaServ.Questions = TriviaServ.Questions + i;
 		i = 0;
 	}		
 	/* can't call this, because we are not online yet */
-//	chanalert(s_TriviaServ, "Successfully Loaded information for %ld questions", (long)list_count(ql));
+//	irc_chanalert (tvs_bot, "Successfully Loaded information for %ld questions", (long)list_count(ql));
 }
 
 
-TriviaChan *FindTChan(char *name) {
-	Chans *c;
-	
-	c = findchan(name);
-	
+TriviaChan *FindTChan(Channel* c) 
+{
 	if (!c) {
 		return NULL;
 	}
@@ -516,7 +490,7 @@ TriviaChan *FindTChan(char *name) {
 	return NULL;
 }
 
-TriviaChan *NewTChan(Chans *c) {
+TriviaChan *NewTChan(Channel *c) {
 	TriviaChan *tc;
 	hnode_t *tcn;
 	
@@ -524,16 +498,15 @@ TriviaChan *NewTChan(Chans *c) {
 		return NULL;
 	}
 	if (c->moddata[TriviaServ.modnum] != NULL) {
-		nlog(LOG_WARNING, LOG_MOD, "Hrm, Chan %s already has a TriviaChanStruct with it", c->name);
+		nlog(LOG_WARNING, "Hrm, Chan %s already has a TriviaChanStruct with it", c->name);
 		return (TriviaChan *)c->moddata[TriviaServ.modnum];
 	}
 	/* ok, first we lookup in the tch hash, to see if this is a channel that we already have a setting for */
 	tcn = hash_lookup(tch, c->name);
 	if (tcn == NULL) {
 		/* ok, create and insert into hash */
-		tc = malloc(sizeof(TriviaChan));
-		bzero(tc, sizeof(TriviaChan))
-		ircsnprintf(tc->name, CHANLEN, c->name);
+		tc = ns_calloc (sizeof(TriviaChan));
+		ircsnprintf(tc->name, MAXCHANLEN, c->name);
 		tc->c = c;
 		/* XXX */
 		tc->questtime = 60;
@@ -541,7 +514,7 @@ TriviaChan *NewTChan(Chans *c) {
 		tc->qfl = list_create(-1);
 		tcn = hnode_create(tc);
 		hash_insert(tch, tcn, tc->name);
-		nlog(LOG_DEBUG1, LOG_MOD, "Created New TC entry for Channel %s", c->name);
+		dlog (DEBUG1, "Created New TC entry for Channel %s", c->name);
 	} else {
 		return NULL;
 	}
@@ -549,13 +522,13 @@ TriviaChan *NewTChan(Chans *c) {
 	return tc;
 }
 
-TriviaChan *OfflineTChan(Chans *c) {
+TriviaChan *OfflineTChan(Channel *c) {
 	TriviaChan *tc;
 	if (!c) {
 		return NULL;
 	}
 	if (c->moddata[TriviaServ.modnum] == NULL) {
-		nlog(LOG_WARNING, LOG_MOD, "TriviaChan %s already marked offline?!!?!", c->name);
+		nlog(LOG_WARNING, "TriviaChan %s already marked offline?!!?!", c->name);
 		return NULL;
 	}
 	tc = c->moddata[TriviaServ.modnum];
@@ -563,18 +536,18 @@ TriviaChan *OfflineTChan(Chans *c) {
 	tc->c = NULL;
 	tc->active = 0;
 	tc->curquest = NULL;
-	spart_cmd(s_TriviaServ, c->name);
+	irc_part (tvs_bot, c->name);
 	return tc;
 }
 
-TriviaChan *OnlineTChan(Chans *c) {
+TriviaChan *OnlineTChan(Channel *c) {
 	TriviaChan *tc;
 	hnode_t *tcn;
 	if (!c) {
 		return NULL;
 	}
 	if (c->moddata[TriviaServ.modnum] != NULL) {
-		nlog(LOG_WARNING, LOG_MOD, "TriviaChan %s already marked online?!?!", c->name);
+		nlog(LOG_WARNING, "TriviaChan %s already marked online?!?!", c->name);
 		return (TriviaChan *)c->moddata[TriviaServ.modnum];
 	}
 	tcn = hash_lookup(tch, c->name);
@@ -582,7 +555,7 @@ TriviaChan *OnlineTChan(Chans *c) {
 		tc = hnode_get(tcn);
 		tc->c = c;
 		c->moddata[TriviaServ.modnum] = tc;
-		join_bot_to_chan(s_TriviaServ, tc->name, 0);
+		irc_join (tvs_bot, tc->name, 0);
 		return tc;
 	} else {
 		return NULL;
@@ -597,152 +570,152 @@ int DelTChan(char *chan) {
 	if (hnode) {
 		tc = hnode_get(hnode);
 		/* part the channel if its online */
-		if (FindTChan(tc->name)) OfflineTChan(findchan(tc->name));
+		if (FindTChan(tc->c)) OfflineTChan(find_chan (tc->name));
 		hash_delete(tch, hnode);
 		list_destroy_nodes(tc->qfl);
-		free(tc);
+		ns_free (tc);
 		hnode_destroy(hnode);
-		DelRow("Chans", chan);
+		DelRow("Channel", chan);
 		return NS_SUCCESS;
 	} else {
 		return NS_FAILURE;
 	}
 }
 
-int SaveTChan (TriviaChan *tc) {
-
-	SetData((void *)tc->publiccontrol, CFGINT, "Chans", tc->name, "Public");
-	SetData((void *)&tc->questtime, CFGINT, "Chans", tc->name, "Timeout");
-
+int SaveTChan (TriviaChan *tc) 
+{
+	SetData((void *)tc->publiccontrol, CFGINT, "Channel", tc->name, "Public");
+	SetData((void *)&tc->questtime, CFGINT, "Channel", tc->name, "Timeout");
 	/* XXX Save Category List */
 	return NS_SUCCESS;
 }
 
-
-int PartChan(char **av, int ac) {
-	Chans *c;
-	c = findchan(av[0]);
-	if (FindTChan(av[0]) && (c->cur_users == 2)) {
+int PartChan(CmdParams* cmdparams) 
+{
+	if (FindTChan(cmdparams->channel) && (cmdparams->channel->users == 2)) {
 		/* last user leaving, so we go offline on this channel */
-		OfflineTChan(c);
+		OfflineTChan(cmdparams->channel);
 	}
 	return NS_SUCCESS;
 }
 
-int NewChan(char **av, int ac) {
-	Chans *c;
-	if (TriviaServ.isonline != 1) 
-		return NS_FAILURE;
-	c = findchan(av[0]);
-	OnlineTChan(c);
+int NewChan(CmdParams* cmdparams) 
+{
+	OnlineTChan(cmdparams->channel);
 	return NS_SUCCESS;
 }
 
-void tvs_sendhelp(char *who) {
-	prefmsg(who, s_TriviaServ, "This is help");
+void tvs_sendhelp(Client* u) 
+{
+	irc_prefmsg (tvs_bot, u, "This is help");
 }
 
-void tvs_sendscore(char *who, TriviaChan *tc) {
-	prefmsg(who, s_TriviaServ, "Score for %s in %s", who, tc->name);
+void tvs_sendscore(Client* u, TriviaChan *tc) 
+{
+	irc_prefmsg (tvs_bot, u, "Score for %s in %s", u->name, tc->name);
 }
 
-void tvs_sendhint(char *who, TriviaChan *tc) {
-	prefmsg(who, s_TriviaServ, "Hint for %s in %s", who, tc->name);
+void tvs_sendhint(Client* u, TriviaChan *tc) 
+{
+	irc_prefmsg (tvs_bot, u, "Hint for %s in %s", u->name, tc->name);
 }
 
-void tvs_starttriv(char *who, TriviaChan *tc) {
+void tvs_starttriv(Client* u, TriviaChan *tc) 
+{
 	tc->active = 1;
-	prefmsg(who, s_TriviaServ, "Starting Trivia in %s shortly", tc->name);
+	irc_prefmsg (tvs_bot, u, "Starting Trivia in %s shortly", tc->name);
 	/* use privmsg to send to a channel instead */
-	privmsg(tc->name, s_TriviaServ, "%s has activated Trivia. Get Ready for the first question!", who);
+	irc_chanprivmsg (tvs_bot, tc->name, "%s has activated Trivia. Get Ready for the first question!", u->name);
 }
-void tvs_stoptriv(char *who, TriviaChan *tc) {
+
+void tvs_stoptriv(Client* u, TriviaChan *tc) 
+{
 	tc->active = 0;
 	if (tc->curquest != NULL) {
 		tc->curquest = NULL;
 	}
-	prefmsg(who, s_TriviaServ, "Trivia Stoped in %s", tc->name);
-	privmsg(tc->name, s_TriviaServ, "%s has stopped Trivia.", who);
+	irc_prefmsg (tvs_bot, u, "Trivia Stoped in %s", tc->name);
+	irc_chanprivmsg (tvs_bot, tc->name, "%s has stopped Trivia.", u->name);
 }
 
-int find_cat_name(const void *catnode, const void *name) {
+int find_cat_name(const void *catnode, const void *name) 
+{
 	QuestionFiles *qf = (void *)catnode;
 	return (strcasecmp(qf->name, name));
 }
-	
 
-
-void tvs_set(char *who, TriviaChan *tc, char **av, int ac) {
+void tvs_set(CmdParams* cmdparams, TriviaChan *tc) 
+{
 	lnode_t *lnode;
 	QuestionFiles *qf;
-	if (ac >= 3 && !strcasecmp(av[2], "CATEGORY")) {
-		if (ac == 5 && !strcasecmp(av[3], "ADD")) {
-			lnode = list_find(qfl, av[4], find_cat_name);
+	if (cmdparams->ac >= 3 && !strcasecmp(cmdparams->av[0], "CATEGORY")) {
+		if (cmdparams->ac == 5 && !strcasecmp(cmdparams->av[1], "ADD")) {
+			lnode = list_find(qfl, cmdparams->av[2], find_cat_name);
 			if (lnode) {
-				if (list_find(tc->qfl, av[4], find_cat_name)) {
-					prefmsg(who, s_TriviaServ, "Category %s is already set for this channel", av[4]);
+				if (list_find(tc->qfl, cmdparams->av[2], find_cat_name)) {
+					irc_prefmsg (tvs_bot, cmdparams->source, "Category %s is already set for this channel", cmdparams->av[2]);
 					return;
 				} else {
 					qf = lnode_get(lnode);
 					list_append(tc->qfl, lnode_create(qf));
-					prefmsg(who, s_TriviaServ, "Added Category %s to this channel", av[4]);
-					privmsg(tc->name, s_TriviaServ, "%s added Category %s to the list of questions", who, av[4]);
+					irc_prefmsg (tvs_bot, cmdparams->source, "Added Category %s to this channel", cmdparams->av[2]);
+					irc_chanprivmsg (tvs_bot, tc->name, "%s added Category %s to the list of questions", cmdparams->source->name, cmdparams->av[2]);
 					SaveTChan(tc);
 					return;
 				}
 			} else {
-				prefmsg(who, s_TriviaServ, "Can't Find Category %s. Try /msg %s catlist", av[4], s_TriviaServ);
+				irc_prefmsg (tvs_bot, cmdparams->source, "Can't Find Category %s. Try /msg %s catlist", cmdparams->av[2], tvs_bot->name);
 				return;
 			}
-		} else if (ac == 5 && !strcasecmp(av[3], "DEL")) {
-			lnode = list_find(tc->qfl, av[4], find_cat_name);
+		} else if (cmdparams->ac == 5 && !strcasecmp(cmdparams->av[1], "DEL")) {
+			lnode = list_find(tc->qfl, cmdparams->av[2], find_cat_name);
 			if (lnode) {
 				list_delete(tc->qfl, lnode);
 				lnode_destroy(lnode);
 				/* dun delete the QF entry. */
-				prefmsg(who, s_TriviaServ, "Deleted Category %s for this channel", av[4]);
-				privmsg(tc->name, s_TriviaServ, "%s deleted category %s for this channel", who, av[4]);
+				irc_prefmsg (tvs_bot, cmdparams->source, "Deleted Category %s for this channel", cmdparams->av[2]);
+				irc_chanprivmsg (tvs_bot, tc->name, "%s deleted category %s for this channel", cmdparams->source->name, cmdparams->av[2]);
 				SaveTChan(tc);
 				return;
 			} else {
-				prefmsg(who, s_TriviaServ, "Couldn't find Category %s in the list. Try !set category list", av[4]);
+				irc_prefmsg (tvs_bot, cmdparams->source, "Couldn't find Category %s in the list. Try !set category list", cmdparams->av[2]);
 				return;
 			}
-		} else if (!strcasecmp(av[3], "LIST")) {
+		} else if (!strcasecmp(cmdparams->av[1], "LIST")) {
 			if (!list_isempty(tc->qfl)) {
-				prefmsg(who, s_TriviaServ, "Categories for this Channel are:");
+				irc_prefmsg (tvs_bot, cmdparams->source, "Categories for this Channel are:");
 				lnode = list_first(tc->qfl);
 				while (lnode != NULL) {
 					qf = lnode_get(lnode);
-					prefmsg(who, s_TriviaServ, "%s) %s", qf->name, qf->description);
+					irc_prefmsg (tvs_bot, cmdparams->source, "%s) %s", qf->name, qf->description);
 					lnode = list_next(tc->qfl, lnode);
 				}
-				prefmsg(who, s_TriviaServ, "End of List.");
+				irc_prefmsg (tvs_bot, cmdparams->source, "End of List.");
 				return;
 			} else {
-				prefmsg(who, s_TriviaServ, "Using Random Categories for this channel");
+				irc_prefmsg (tvs_bot, cmdparams->source, "Using Random Categories for this channel");
 				return;
 			}
-		} else if (!strcasecmp(av[3], "RESET")) {
+		} else if (!strcasecmp(cmdparams->av[1], "RESET")) {
 			while (!list_isempty(tc->qfl)) {
 				list_destroy_nodes(tc->qfl);
 			}
-			prefmsg(who, s_TriviaServ, "Reset the Question Catagories to Default in %s", tc->name);
-			privmsg(tc->name, s_TriviaServ, "%s reset the Question Categories to Default", who);
+			irc_prefmsg (tvs_bot, cmdparams->source, "Reset the Question Catagories to Default in %s", tc->name);
+			irc_chanprivmsg (tvs_bot, tc->name, "%s reset the Question Categories to Default", cmdparams->source->name);
 			SaveTChan(tc);
 			return;
 		} else {
-			prefmsg(who, s_TriviaServ, "Syntax Error. /msg %s help !set", s_TriviaServ);
+			irc_prefmsg (tvs_bot, cmdparams->source, "Syntax Error. /msg %s help !set", tvs_bot->name);
 		}
 		return;		
 	} else {
-		prefmsg(who, s_TriviaServ, "Syntax Error. /msg %s help !set", s_TriviaServ);
-	}
-			
-	prefmsg(who, s_TriviaServ, "%s used Set", who);
+		irc_prefmsg (tvs_bot, cmdparams->source, "Syntax Error. /msg %s help !set", tvs_bot->name);
+	}		
+	irc_prefmsg (tvs_bot, cmdparams->source, "%s used Set", cmdparams->source->name);
 }
 
-void tvs_processtimer() {
+int tvs_processtimer(void) 
+{
 	TriviaChan *tc;
 	hscan_t hs;
 	hnode_t *hnodes;
@@ -753,7 +726,6 @@ void tvs_processtimer() {
 	newrand++;
 	if (newrand > 30 || newrand == 1)
 		srand(me.now);
-
 	hash_scan_begin(&hs, tch);
 	while ((hnodes = hash_scan_next(&hs)) != NULL) {
 		tc = hnode_get(hnodes);
@@ -772,18 +744,21 @@ void tvs_processtimer() {
 			}
 			/* hint processor */
 			if ((tc->questtime - timediff) < 15) {
-				privmsg(tc->name, s_TriviaServ, "Less than 15 Seconds Remaining, Hurry up!");
+				irc_chanprivmsg (tvs_bot, tc->name, "Less than 15 Seconds Remaining, Hurry up!");
 				continue;
 			}
 			do_hint(tc);
 		}
 	}
+	return NS_SUCCESS;
 }
 
-QuestionFiles *tvs_randomquestfile(TriviaChan *tc) {
+QuestionFiles *tvs_randomquestfile(TriviaChan *tc) 
+{
 	lnode_t *lnode;
 	QuestionFiles *qf;
 	int qfn, i;
+
 	if (list_isempty(tc->qfl)) {
 		/* if the qfl for this chan is empty, use all qfl's */
 		qfn=(unsigned)(rand()%((int)(list_count(qfl))));
@@ -799,7 +774,7 @@ QuestionFiles *tvs_randomquestfile(TriviaChan *tc) {
 		if (qf != NULL) {
 			return qf;
 		} else {
-			nlog(LOG_WARNING, LOG_MOD, "Question File Selection (Random) for %s failed. Using first entry", tc->name);
+			nlog(LOG_WARNING, "Question File Selection (Random) for %s failed. Using first entry", tc->name);
 			lnode = list_first(qfl);
 			qf = lnode_get(lnode);
 			return qf;			
@@ -819,7 +794,7 @@ QuestionFiles *tvs_randomquestfile(TriviaChan *tc) {
 		if (qf != NULL) {
 			return qf;
 		} else {
-			nlog(LOG_WARNING, LOG_MOD, "Question File Selection (Specific) for %s failed. Using first entry", tc->name);
+			nlog(LOG_WARNING, "Question File Selection (Specific) for %s failed. Using first entry", tc->name);
 			lnode = list_first(tc->qfl);
 			qf = lnode_get(lnode);
 			return qf;			
@@ -834,13 +809,11 @@ void tvs_newquest(TriviaChan *tc) {
 	lnode_t *qnode;
 	Questions *qe;
 	QuestionFiles *qf;
-	char tmpbuf[512];
-	
+	char tmpbuf[512];	
 
 	qf = tvs_randomquestfile(tc);
 restartquestionselection:
 	qn=(unsigned)(rand()%((int)(list_count(qf->QE)-1)));
-
 	/* ok, this is bad.. but sigh, not much we can do atm. */
 	qnode = list_first(qf->QE);
 	qe = NULL;
@@ -853,41 +826,38 @@ restartquestionselection:
 	}
 	/* ok, we hopefully have the Q */
 	if (qe == NULL) {
-		nlog(LOG_WARNING, LOG_MOD, "Eh? Never got a Question");
+		nlog(LOG_WARNING, "Eh? Never got a Question");
 		goto restartquestionselection;
 	}
-
 	/* ok, now seek to the question in the file */
-
 	if (fseek(qf->fn, qe->offset, SEEK_SET)) {
-		nlog(LOG_WARNING, LOG_MOD, "Eh? Fseek returned a error(%s): %s", qf->filename, strerror(errno));
-		chanalert(s_TriviaServ, "Question File Error in %s: %s", qf->filename, strerror(errno));
+		nlog(LOG_WARNING, "Eh? Fseek returned a error(%s): %s", qf->filename, strerror(errno));
+		irc_chanalert (tvs_bot, "Question File Error in %s: %s", qf->filename, strerror(errno));
 		return;
 	}
 	if (!fgets(tmpbuf, 512, qf->fn)) {
-		nlog(LOG_WARNING, LOG_MOD, "Eh, fgets returned null(%s): %s", qf->filename, strerror(errno));
-		chanalert(s_TriviaServ, "Question file Error in %s: %s", qf->filename, strerror(errno));
+		nlog(LOG_WARNING, "Eh, fgets returned null(%s): %s", qf->filename, strerror(errno));
+		irc_chanalert (tvs_bot, "Question file Error in %s: %s", qf->filename, strerror(errno));
 		return;
 	}
 	if (tvs_doregex(qe, tmpbuf) == NS_FAILURE) {
-		chanalert(s_TriviaServ, "Question Parsing Failed. Please Check Log File");
+		irc_chanalert (tvs_bot, "Question Parsing Failed. Please Check Log File");
 		return;
 	}	
 	tc->curquest = qe;
-	privmsg(tc->name, s_TriviaServ, "Fingers on the keyboard, Here comes the Next Question!");
+	irc_chanprivmsg (tvs_bot, tc->name, "Fingers on the keyboard, Here comes the Next Question!");
 	obscure_question(tc);
 	tc->lastquest = me.now;
-
 }
 
 void tvs_ansquest(TriviaChan *tc) {
 	Questions *qe;
 	qe = tc->curquest;
-	privmsg(tc->name, s_TriviaServ, "Times Up! The Answer was: \2%s\2", qe->answer);
+	irc_chanprivmsg (tvs_bot, tc->name, "Times Up! The Answer was: \2%s\2", qe->answer);
 	/* so we don't chew up memory too much */
-	free(qe->regexp);
-	free(qe->question);
-	free(qe->answer);
+	ns_free (qe->regexp);
+	ns_free (qe->question);
+	ns_free (qe->answer);
 	qe->question = NULL;
 	tc->curquest = NULL;
 }
@@ -900,25 +870,23 @@ int tvs_doregex(Questions *qe, char *buf) {
 	int ovector[9];
 	const char **subs;
 	int gotanswer;
-	char tmpbuf[REGSIZE], tmpbuf1[REGSIZE];
-	
+	char tmpbuf[REGSIZE], tmpbuf1[REGSIZE];	
 	
 	re = pcre_compile(TVSREXEXP, 0, &error, &errofset, NULL);
 	if (!re) {
-		nlog(LOG_WARNING, LOG_MOD, "Warning, PCRE compile failed: %s at %d", error, errofset);
+		nlog(LOG_WARNING, "Warning, PCRE compile failed: %s at %d", error, errofset);
 		return NS_FAILURE;
 	}
 	gotanswer = 0;
 	/* strip any newlines out */
 	strip(buf);
 	/* we copy the entire thing into the question struct, but it will end up as only the question after pcre does its thing */
-	qe->question = malloc(QUESTSIZE);
-	qe->answer = malloc(ANSSIZE);
+	qe->question = ns_malloc (QUESTSIZE);
+	qe->answer = ns_malloc (ANSSIZE);
 	strlcpy(qe->question, buf, QUESTSIZE);
 	bzero(tmpbuf, ANSSIZE);
 	/* no, its not a infinate loop */
-	while (1) {
-	
+	while (1) {	
 		rc = pcre_exec(re, NULL, qe->question, strlen(qe->question), 0, 0, ovector, 9);
 		if (rc <= 0) {
 			if ((rc == PCRE_ERROR_NOMATCH) && (gotanswer > 0)) {
@@ -928,19 +896,19 @@ int tvs_doregex(Questions *qe, char *buf) {
 				qe->regexp = pcre_compile(tmpbuf1, 0, &error, &errofset, NULL);
 				if (qe->regexp == NULL) {
 					/* damn damn damn, our constructed regular expression failed */
-					nlog(LOG_WARNING, LOG_MOD, "pcre_compile_answer failed: %s at %d", error, errofset);
-					free(re);
+					nlog(LOG_WARNING, "pcre_compile_answer failed: %s at %d", error, errofset);
+					ns_free (re);
 					return NS_FAILURE;
 				}
-				free(re);
+				ns_free (re);
 				/* XXXX Random Scores? */
 				qe->points = 10;
 				qe->hints = 0;
 				return NS_SUCCESS;
 			} 
 			/* some other error occured. Damn. */
-			nlog(LOG_WARNING, LOG_MOD, "pcre_exec failed. %s - %d", qe->question, rc);
-			free(re);
+			nlog(LOG_WARNING, "pcre_exec failed. %s - %d", qe->question, rc);
+			ns_free (re);
 			return NS_FAILURE;
 		} else if (rc == 3) {
 			gotanswer++;
@@ -969,7 +937,8 @@ int tvs_doregex(Questions *qe, char *buf) {
 	
 }
 
-void tvs_testanswer(char *origin, TriviaChan *tc, char *line) {
+void tvs_testanswer(Client* u, TriviaChan *tc, char *line) 
+{
 	Questions *qe;
 	int rc;
 	
@@ -977,20 +946,20 @@ void tvs_testanswer(char *origin, TriviaChan *tc, char *line) {
 	if (qe == NULL) 
 		return;
 	
-	nlog(LOG_DEBUG3, LOG_MOD, "Testing Answer on regexp: %s", line);
+	dlog (DEBUG3, "Testing Answer on regexp: %s", line);
 	rc = pcre_exec(qe->regexp, NULL, line, strlen(line), 0, 0, NULL, 0);
 	if (rc >= 0) {
 		/* we got a match! */
-		privmsg(tc->name, s_TriviaServ, "Correct! %s got the answer: %s", origin, qe->answer);
-		tvs_addpoints(origin, tc);
+		irc_chanprivmsg (tvs_bot, tc->name, "Correct! %s got the answer: %s", u->name, qe->answer);
+		tvs_addpoints(u, tc);
 		tc->curquest = NULL;
-		free(qe->regexp);
+		ns_free (qe->regexp);
 		return;
 	} else if (rc == -1) {
 		/* no match, return silently */
 		return;
 	} else if (rc < 0) {
-		nlog(LOG_WARNING, LOG_MOD, "pcre_exec in tvs_testanswer failed: %s - %d", line, rc);
+		nlog(LOG_WARNING, "pcre_exec in tvs_testanswer failed: %s - %d", line, rc);
 		return;
 	}
 }
@@ -998,61 +967,50 @@ void tvs_testanswer(char *origin, TriviaChan *tc, char *line) {
 /* The following came from the blitzed TriviaBot. 
  * Credit goes to Andy for this function
 */
+void do_hint(TriviaChan *tc) 
+{
+	char *out;
+	Questions *qe;
+	int random, num, i;
 
-void do_hint(TriviaChan *tc) {
-   char *out;
-   Questions *qe;
-   int random, num, i;
- 
- 
-   if (tc->curquest == NULL) {
-	nlog(LOG_WARNING, LOG_MOD, "curquest is missing for hint");
-	return;
-   }
-   qe = tc->curquest;
-      
-   out = strdup(qe->answer);
-    
-   num = strlen(qe->answer) / TriviaServ.HintRatio;
-  
-   if (qe->hints > 0) {
-	   num = num * qe->hints;
-   }
- 
-   for(i=0;i < (int)strlen(out);i++) {
-      if(out[i] != ' ') {
-         out[i] = '-';
-      }
-   }
-
-
-   for(i=0;i < (num-1);i++) {
-       do {
-          random =  (int) ((double)rand() * (strlen(qe->answer) - 1 + 1.0) / (RAND_MAX+1.0));
-       } while(out[random] == ' ' || out[random] != '-');
-
-        out[random] = qe->answer[random];   
-    }
-   
-   qe->hints++;
-   privmsg(tc->name, s_TriviaServ, "Hint %d: %s", qe->hints, out);
-   free(out);
+	if (tc->curquest == NULL) {
+		nlog(LOG_WARNING, "curquest is missing for hint");
+		return;
+	}
+	qe = tc->curquest;
+	out = strdup(qe->answer);
+	num = strlen(qe->answer) / TriviaServ.HintRatio;
+	if (qe->hints > 0) {
+		num = num * qe->hints;
+	}
+	for(i=0;i < (int)strlen(out);i++) {
+		if(out[i] != ' ') {
+			out[i] = '-';
+		}
+	}
+	for(i=0;i < (num-1);i++) {
+		do {
+			random =  (int) ((double)rand() * (strlen(qe->answer) - 1 + 1.0) / (RAND_MAX+1.0));
+		} while(out[random] == ' ' || out[random] != '-');
+		out[random] = qe->answer[random];   
+	} 
+	qe->hints++;
+	irc_chanprivmsg (tvs_bot, tc->name, "Hint %d: %s", qe->hints, out);
+	ns_free (out);
 }
 
-void obscure_question(TriviaChan *tc) {
+void obscure_question(TriviaChan *tc) 
+{
    char *out;
    Questions *qe;
    int random, i;
    
    if (tc->curquest == NULL) {
-	nlog(LOG_WARNING, LOG_MOD, "curquest is missing for obscure_answer");
-	return;
+		nlog(LOG_WARNING, "curquest is missing for obscure_answer");
+		return;
    }
-
-   qe = tc->curquest;
-      
-   out = malloc(BUFSIZE+1);
-   bzero(out, BUFSIZE+1);
+   qe = tc->curquest;     
+   out = ns_calloc (BUFSIZE+1);
    strlcpy(out, "\00304,01", BUFSIZE);
    for(i=0;i < (int)strlen(qe->question);i++) {
       if(qe->question[i] == ' ') {
@@ -1074,6 +1032,6 @@ void obscure_question(TriviaChan *tc) {
       }
       
    }
-   privmsg(tc->name, s_TriviaServ, "%s", out);
-   free(out);
+   irc_chanprivmsg (tvs_bot, tc->name, "%s", out);
+   ns_free (out);
 }

@@ -24,19 +24,16 @@
 #ifndef TRIVIASERV_H
 #define TRIVIASERV_H
 
-#include "neostats.h"
+#ifndef WIN32
 #include "modconfig.h"
+#endif
 
 #define TVSREXEXP "^(.*)\\*(.*)$"
 #define QUESTSIZE 500
 #define ANSSIZE 200
 #define REGSIZE ANSSIZE + 20
 
-/** 
- *  A string to hold the name of our bot
- */
-char s_TriviaServ[MAXNICK];
-
+extern Bot *tvs_bot;
 
 struct TriviaServ {
 	char user[MAXUSER]; 
@@ -74,8 +71,8 @@ struct Quests {
 typedef struct Quests Questions;
 
 struct TChans {
-	char name[CHANLEN];
-	Chans *c;
+	char name[MAXCHANLEN];
+	Channel *c;
 	int publiccontrol;
 	int active;
 	long lastquest;
@@ -97,20 +94,14 @@ typedef struct TScore TriviaScore;
 list_t *qfl;
 hash_t *tch;
 
-
-
-
 /* TriviaServ_help.c */
-extern const char *tvs_help_about[];
-extern const char tvs_help_about_oneline[];
-extern const char *tvs_help_version[];
-extern const char tvs_help_version_oneline[];
+extern const char *tvs_about[];
 extern const char *tvs_help_set_exclusions[];
 extern const char *tvs_help_chans[];
 extern const char tvs_help_chans_oneline[];
 extern const char *tvs_help_catlist[];
 extern const char tvs_help_catlist_oneline[];
 /* TriviaUser.c */
-void tvs_addpoints(char *, TriviaChan *);
-int DelUser(char **av, int ac);
+void tvs_addpoints(Client *u, TriviaChan *tc);
+int DelUser(CmdParams* cmdparams);
 #endif /* TRIVIASERV_H */
