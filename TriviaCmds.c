@@ -88,7 +88,7 @@ int tvs_cmd_start (CmdParams* cmdparams)
 	if (!tc) {
 		return NS_FAILURE;
 	}
-	if ((tc->publiccontrol == 0) && (!IsChanOp(cmdparams->channel->name, cmdparams->source->name))) {
+	if ((tc->publiccontrol == 0) && (!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN)) {
 		/* nope, get lost, silently exit */
 		return NS_FAILURE;
 	}
@@ -115,7 +115,7 @@ int tvs_cmd_stop (CmdParams* cmdparams)
 	if (!tc) {
 		return NS_FAILURE;
 	}
-	if ((tc->publiccontrol == 0) && (!IsChanOp(cmdparams->channel->name, cmdparams->source->name))) {
+	if ((tc->publiccontrol == 0) && (!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN)) {
 		/* nope, get lost, silently exit */
 		return NS_FAILURE;
 	}
@@ -145,8 +145,7 @@ int tvs_cmd_qs (CmdParams* cmdparams)
 	if (!tc) {
 		return NS_FAILURE;
 	}
-	/* finally, these ones are restricted always */
-	if (!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) {
+	if ((!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN)) {
 		/* nope, get lost */
 		return NS_FAILURE;
 	}
@@ -167,8 +166,7 @@ int tvs_cmd_sp (CmdParams* cmdparams)
 	if (!tc) {
 		return NS_FAILURE;
 	}
-	/* finally, these ones are restricted always */
-	if (!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) {
+	if ((!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN)) {
 		/* nope, get lost */
 		return NS_FAILURE;
 	}
@@ -196,8 +194,7 @@ int tvs_cmd_pc (CmdParams* cmdparams)
 	if (!tc) {
 		return NS_FAILURE;
 	}
-	/* finally, these ones are restricted always */
-	if (!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) {
+	if ((!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN)) {
 		/* nope, get lost */
 		return NS_FAILURE;
 	}
@@ -227,8 +224,7 @@ int tvs_cmd_opchan (CmdParams* cmdparams)
 	if (!tc) {
 		return NS_FAILURE;
 	}
-	/* finally, these ones are restricted always */
-	if (!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) {
+	if ((!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN)) {
 		/* nope, get lost */
 		return NS_FAILURE;
 	}
@@ -241,7 +237,7 @@ int tvs_cmd_opchan (CmdParams* cmdparams)
 		return NS_FAILURE;
 	}
 	SaveTChan(tc);
-	/* check if setting changes and op/deop botfinally, these ones are restricted always */
+	/* check if setting changes and op/deop bot */
 	if (tc->opchan && !IsChanOp(cmdparams->channel->name, tvs_bot->u->name)) {
 		irc_chanusermode( tvs_bot, cmdparams->channel->name, "+o", tvs_bot->u->name);
 	} else if (!tc->opchan && IsChanOp(cmdparams->channel->name, tvs_bot->u->name)) {
@@ -262,8 +258,7 @@ int tvs_cmd_resetscores (CmdParams* cmdparams) {
 	if (!tc) {
 		return NS_FAILURE;
 	}
-	/* finally, these ones are restricted always */
-	if (!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) {
+	if ((!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN)) {
 		/* nope, get lost */
 		return NS_FAILURE;
 	}

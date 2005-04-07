@@ -2,6 +2,7 @@ YahtzeeServ Module for NeoStats Changelog.
 Fish (F), Mark (M), DeadNotBuried (D)
 ==============================================================================
 3.0.a3-dev
+ - allow NS_ULEVEL_ADMIN access to Channel Op commands always (D)
  - remove BOT_FLAG_RESTRICT_OPERS so channel ops can use channel commands
    to set channel options (D)
  - set to ADMIN and above to add Trivia channels (D)
