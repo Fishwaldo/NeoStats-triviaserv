@@ -1,5 +1,5 @@
 /* NeoStats - IRC Statistical Services 
-** Copyright (c) 1999-2005 Adam Rutter, Justin Hammond, Mark Hetherington
+** Copyright (c) 1999-2005 Adam Rutter, Justin Hammond, Mark Hetherington, DeadNotBuried
 ** http://www.neostats.net/
 **
 **  Portions Copyright (c) 2000-2001 ^Enigma^
@@ -96,7 +96,7 @@ int tvs_cmd_start (CmdParams* cmdparams)
 		tc->active = 1;
 		tc->curquest = NULL;
 		irc_prefmsg (tvs_bot, cmdparams->source, "Starting Trivia in %s shortly", tc->name);
-		irc_chanprivmsg (tvs_bot, tc->name, "%s has activated Trivia. Get Ready for the first question!", cmdparams->source->name);
+		irc_chanprivmsg (tvs_bot, tc->name, "\003%d%s%s \003%dhas activated Trivia. Get Ready for the first question!", tc->hintcolour, (tc->boldcase %2) ? "\002" : "", cmdparams->source->name, tc->messagecolour);
 	} else {
 		irc_prefmsg (tvs_bot, cmdparams->source, "Trivia is already running in %s", tc->name);
 	}
@@ -125,7 +125,7 @@ int tvs_cmd_stop (CmdParams* cmdparams)
 			tc->curquest = NULL;
 		}
 		irc_prefmsg (tvs_bot, cmdparams->source, "Trivia Stoped in %s", tc->name);
-		irc_chanprivmsg (tvs_bot, tc->name, "%s has stopped Trivia.", cmdparams->source->name);
+		irc_chanprivmsg (tvs_bot, tc->name, "\003%d%s%s \003%dhas stopped Trivia.", tc->hintcolour, (tc->boldcase %2) ? "\002" : "", cmdparams->source->name, tc->messagecolour);
 	} else {
 		irc_prefmsg (tvs_bot, cmdparams->source, "Trivia is not currently running in %s", tc->name);
 	}
@@ -291,6 +291,113 @@ int tvs_cmd_resetscores (CmdParams* cmdparams) {
 			irc_chanprivmsg (tvs_bot, cmdparams->channel->name, "Channel Trivia Scores will now be reset Anually.");
 			break;
 	}
+	return NS_SUCCESS;
+}
+
+/*
+ * Allows Chanops to set colour/bold/underline for questions/hints/etc
+*/
+int tvs_cmd_colour (CmdParams* cmdparams) {
+	TriviaChan *tc;
+	int fg, bg, lc, i;
+
+	/* find if its our channel. */
+	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
+	if (!tc) {
+		return NS_FAILURE;
+	}
+	if ((!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN)) {
+		/* nope, get lost */
+		return NS_FAILURE;
+	}
+	lc = 0;
+	fg = atoi(cmdparams->av[0]);
+	bg = atoi(cmdparams->av[1]);
+	if ( fg < 0 || fg > 15 ) {
+		irc_prefmsg (tvs_bot, cmdparams->source, "Foreground Colour out of range, Colour codes are from 0 through 15 only.");
+		return NS_FAILURE;
+	}
+	if ( bg < 0 || bg > 15 ) {
+		irc_prefmsg (tvs_bot, cmdparams->source, "Background Colour out of range, Colour codes are from 0 through 15 only.");
+		return NS_FAILURE;
+	}
+	if ( fg == bg ) {
+		irc_prefmsg (tvs_bot, cmdparams->source, "Foreground and Background colours MUST be different.");
+		return NS_FAILURE;
+	}
+	tc->foreground = fg;
+	tc->background = bg;
+	if (cmdparams->ac > 2) {
+		for (i = 2 ; i < cmdparams->ac ; i++) {
+			if (!ircstrcasecmp(cmdparams->av[i], "B")) {
+				if (!lc) {
+					tc->boldcase = 0;
+				}
+				tc->boldcase += 1;
+				lc = 1;
+			}
+			if (!ircstrcasecmp(cmdparams->av[i], "L")) {
+				if (!lc) {
+					tc->boldcase = 0;
+				}
+				tc->boldcase += 2;
+				lc = 1;
+			}
+			if (!ircstrcasecmp(cmdparams->av[i], "U")) {
+				if (!lc) {
+					tc->boldcase = 0;
+				}
+				tc->boldcase += 4;
+				lc = 1;
+			}
+			if (!lc) {
+				if (i == 2) {
+					tc->hintcolour = atoi(cmdparams->av[i]);
+				} else if (i == 3) {
+					tc->messagecolour = atoi(cmdparams->av[i]);
+				}
+			}
+		}
+	}
+	SaveTChan(tc);
+	irc_chanprivmsg (tvs_bot, tc->name, "Question colour updated");
+	return NS_SUCCESS;
+}
+
+/*
+ * Allows Chanops to set hint character used for answers
+*/
+int tvs_cmd_hintchar (CmdParams* cmdparams) {
+	TriviaChan *tc;
+	Questions *qe;
+	int i;
+
+	/* find if its our channel. */
+	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
+	if (!tc) {
+		return NS_FAILURE;
+	}
+	if ((!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN)) {
+		/* nope, get lost */
+		return NS_FAILURE;
+	}
+	if (strlen(cmdparams->av[0]) > 1) {
+		irc_prefmsg (tvs_bot, cmdparams->source, "Hint Character may only be a single character");
+		return NS_FAILURE;
+	}
+	/* if currently asking question change hint characters */
+	if (tc->curquest) {
+		qe = tc->curquest;
+		for (i=0;i < (int)strlen(qe->lasthint);i++) {
+			if (qe->lasthint[i] == tc->hintchar && qe->answer[i] != tc->hintchar) {
+				qe->lasthint[i] = cmdparams->av[0][0];
+			}
+		}
+	}
+	/* set and save new hint char */
+	tc->hintchar = cmdparams->av[0][0];
+	SaveTChan(tc);
+	irc_chanprivmsg (tvs_bot, tc->name, "Hint Character changed to %s", cmdparams->av[0]);
 	return NS_SUCCESS;
 }
 

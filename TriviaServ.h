@@ -1,5 +1,5 @@
 /* NeoStats - IRC Statistical Services 
-** Copyright (c) 1999-2005 Adam Rutter, Justin Hammond, Mark Hetherington
+** Copyright (c) 1999-2005 Adam Rutter, Justin Hammond, Mark Hetherington, DeadNotBuried
 ** http://www.neostats.net/
 **
 **  This program is free software; you can redistribute it and/or modify
@@ -71,13 +71,19 @@ typedef struct TriviaChan {
 	int publiccontrol;
 	int active;
 	int scorepoints;
-	time_t lastquest;
 	long questtime;
 	int opchan;
 	int resettype;
 	int lastreset;
-	Questions *curquest;
+	int foreground;
+	int background;
+	int boldcase;
+	int hintcolour;
+	int messagecolour;
+	int hintchar;
+	time_t lastquest;
 	list_t *qfl;
+	Questions *curquest;
 } TriviaChan;
 
 typedef struct TriviaChannelQuestionFiles {
@@ -130,6 +136,10 @@ extern const char *tvs_help_opchan[];
 extern const char tvs_help_opchan_oneline[];
 extern const char *tvs_help_resetscores[];
 extern const char tvs_help_resetscores_oneline[];
+extern const char *tvs_help_colour[];
+extern const char tvs_help_colour_oneline[];
+extern const char *tvs_help_hintchar[];
+extern const char tvs_help_hintchar_oneline[];
 
 /* TriviaUser.c */
 void tvs_addpoints(Client *u, TriviaChan *tc);
@@ -150,6 +160,8 @@ int tvs_cmd_sp (CmdParams* cmdparams);
 int tvs_cmd_pc (CmdParams* cmdparams);
 int tvs_cmd_opchan (CmdParams* cmdparams);
 int tvs_cmd_resetscores (CmdParams* cmdparams);
+int tvs_cmd_colour (CmdParams* cmdparams);
+int tvs_cmd_hintchar (CmdParams* cmdparams);
 int tvs_catlist(CmdParams* cmdparams);
 int tvs_chans(CmdParams* cmdparams);
 

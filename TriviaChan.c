@@ -1,5 +1,5 @@
 /* NeoStats - IRC Statistical Services 
-** Copyright (c) 1999-2005 Adam Rutter, Justin Hammond, Mark Hetherington
+** Copyright (c) 1999-2005 Adam Rutter, Justin Hammond, Mark Hetherington, DeadNotBuried
 ** http://www.neostats.net/
 **
 **  Portions Copyright (c) 2000-2001 ^Enigma^
@@ -92,6 +92,12 @@ TriviaChan *NewTChan(Channel *c)
 	tc->opchan = 1;
 	tc->resettype = 0;
 	tc->lastreset = me.now;
+	tc->foreground = 4;
+	tc->background = 1;
+	tc->boldcase = 0;
+	tc->hintcolour = 0;
+	tc->messagecolour = 0;
+	tc->hintchar = '-';
 	SetChannelModValue (c, tc);
 	tc->qfl = list_create(-1);
 	hnode_create_insert (tch, tc, tc->name);

@@ -1,5 +1,5 @@
 /* NeoStats - IRC Statistical Services 
-** Copyright (c) 1999-2005 Adam Rutter, Justin Hammond, Mark Hetherington
+** Copyright (c) 1999-2005 Adam Rutter, Justin Hammond, Mark Hetherington, DeadNotBuried
 ** http://www.neostats.net/
 **
 **  This program is free software; you can redistribute it and/or modify
@@ -148,3 +148,32 @@ const char *tvs_help_resetscores[] = {
 	NULL
 };
 const char tvs_help_resetscores_oneline[] = "Set time duration to reset Channel scores";
+
+const char *tvs_help_colour[] = {
+	"Syntax: (in Channel only)",
+	"        \2!COLOUR <foreground> <background> [<hintcolour>] [<messagecolour>] [B] [U|L]\2",
+	"",
+	"This command Sets the colour of the asked questions, and text",
+	"",
+	"foreground, background, hintcolour and messagecolour",
+	" are standard colour numbers, with no control codes.",
+	"E.G. (White on Black)",
+	"!COLOUR 0 1",
+	"",
+	"B (Bold) Bolds all game text",
+	"U (Uppercase) converts questions and hints to Uppercase.",
+	"L (Lowercase) converts questions and hints to lowercase.",
+	"",
+	"Note: Uppercase Overrides Lowercase processing.",
+	NULL
+};
+const char tvs_help_colour_oneline[] = "Set question colour/bold/case";
+
+const char *tvs_help_hintchar[] = {
+	"Syntax: (in Channel only)",
+	"        \2!HINTCHAR <hintcharacter>\2",
+	"",
+	"Sets the hint character replacing letters in the answer",
+	NULL
+};
+const char tvs_help_hintchar_oneline[] = "Set question hint character";

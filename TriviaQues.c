@@ -1,5 +1,5 @@
 /* NeoStats - IRC Statistical Services 
-** Copyright (c) 1999-2005 Adam Rutter, Justin Hammond, Mark Hetherington
+** Copyright (c) 1999-2005 Adam Rutter, Justin Hammond, Mark Hetherington, DeadNotBuried
 ** http://www.neostats.net/
 **
 **  Portions Copyright (c) 2000-2001 ^Enigma^
@@ -220,7 +220,7 @@ QuestionFiles *tvs_randomquestfile(TriviaChan *tc)
 		/* ok, this is bad.. but sigh, not much we can do atm. */
 		lnode = list_first(qfl);
 		i = 0;
-		while (i != qfn) {
+		while (i < qfn) {
 			lnode = list_next(qfl, lnode);
 			i++;
 		}
@@ -231,7 +231,11 @@ QuestionFiles *tvs_randomquestfile(TriviaChan *tc)
 			nlog(LOG_WARNING, "Question File Selection (Random) for %s failed. Using first entry", tc->name);
 			lnode = list_first(qfl);
 			qf = lnode_get(lnode);
-			return qf;			
+			if (qf != NULL) {
+				return qf;
+			}
+			nlog(LOG_WARNING, "Question File Selection (Random) for %s failed. Unable to select First Question File", tc->name);
+			return NULL;			
 		}
 	} else {
 		/* select a random question file */
@@ -239,7 +243,7 @@ QuestionFiles *tvs_randomquestfile(TriviaChan *tc)
 		/* ok, this is bad.. but sigh, not much we can do atm. */
 		lnode = list_first(tc->qfl);
 		i = 0;
-		while (i != qfn) {
+		while (i < qfn) {
 			lnode = list_next(tc->qfl, lnode);
 			i++;
 		}
@@ -250,7 +254,11 @@ QuestionFiles *tvs_randomquestfile(TriviaChan *tc)
 			nlog(LOG_WARNING, "Question File Selection (Specific) for %s failed. Using first entry", tc->name);
 			lnode = list_first(tc->qfl);
 			qf = lnode_get(lnode);
-			return qf;			
+			if (qf != NULL) {
+				return qf;
+			}
+			nlog(LOG_WARNING, "Question File Selection (Specific) for %s failed. Unable to select First Question File", tc->name);
+			return NULL;			
 		}
 	}
 	/* to shut up the compilers */
@@ -263,13 +271,18 @@ QuestionFiles *tvs_randomquestfile(TriviaChan *tc)
  * obscured question to the channel
 */
 void tvs_newquest(TriviaChan *tc) {
-	int qn;
+	int qn, gqt;
 	lnode_t *qnode;
 	Questions *qe;
 	QuestionFiles *qf;
 	char tmpbuf[512];	
 
 	qf = tvs_randomquestfile(tc);
+	if (qf == NULL) {
+		irc_chanalert (tvs_bot, "Question File Error for %s , no question file returned", tc->name);
+		return;
+	}
+	gqt = 0;
 restartquestionselection:
 	qn=(unsigned)((rand()%((int)(list_count(qf->QE))))+1);
 	/* ok, this is bad.. but sigh, not much we can do atm. */
@@ -285,7 +298,12 @@ restartquestionselection:
 	/* ok, we hopefully have the Q */
 	if (qe == NULL) {
 		nlog(LOG_WARNING, "Eh? Never got a Question");
-		goto restartquestionselection;
+		if (gqt < 5) {
+			gqt++;
+			irc_chanalert (tvs_bot, "Question Get Error for %s , Error Retrieving Question Pointer for %s (attempt %d)", tc->name, qf->name, gqt);
+			goto restartquestionselection;
+		}
+		return;
 	}
 	/* ok, now seek to the question in the file */
 	if (os_fseek (qf->fn, qe->offset, SEEK_SET)) {
@@ -308,7 +326,7 @@ restartquestionselection:
 	*/
 	qe->points = tc->scorepoints;
 	tc->curquest = qe;
-	irc_chanprivmsg (tvs_bot, tc->name, "Fingers on the keyboard, Here comes the Next Question!");
+	irc_chanprivmsg (tvs_bot, tc->name, "\003%d%sFingers on the keyboard, Here comes the Next Question!", tc->messagecolour, (tc->boldcase %2) ? "\002" : "");
 	obscure_question(tc);
 	tc->lastquest = me.now;
 }
@@ -320,7 +338,7 @@ restartquestionselection:
 void tvs_ansquest(TriviaChan *tc) {
 	Questions *qe;
 	qe = tc->curquest;
-	irc_chanprivmsg (tvs_bot, tc->name, "Times Up! The Answer was: \2%s\2", qe->answer);
+	irc_chanprivmsg (tvs_bot, tc->name, "\003%d%sTimes Up! The Answer was: \003%d%s%s", tc->messagecolour, (tc->boldcase %2) ? "\002" : "", tc->hintcolour, (tc->boldcase %2) ? "" : "\002", qe->answer);
 	/* so we don't chew up memory too much */
 	ns_free (qe->regexp);
 	ns_free (qe->question);
@@ -425,7 +443,8 @@ void tvs_testanswer(Client* u, TriviaChan *tc, char *line)
 	rc = pcre_exec(qe->regexp, NULL, line, strlen(line), 0, 0, NULL, 0);
 	if (rc >= 0) {
 		/* we got a match! */
-		irc_chanprivmsg (tvs_bot, tc->name, "Correct! %s got the answer: %s", u->name, qe->answer);
+/* TODO : fix up colours etc when multiple words in answer */
+		irc_chanprivmsg (tvs_bot, tc->name, "\003%d%sCorrect!\003%d %s\003%d got the answer:\003%d %s", tc->messagecolour, (tc->boldcase %2) ? "\002" : "", tc->hintcolour, u->name, tc->messagecolour, tc->hintcolour, qe->answer);
 		tvs_addpoints(u, tc);
 		tc->curquest = NULL;
 		ns_free (qe->regexp);
@@ -457,7 +476,7 @@ void do_hint(TriviaChan *tc)
 			/* only replace alphanumeric characters */
 			num = (int)qe->lasthint[i];
 			if ((num > 96 && num < 123) || (num > 64 && num < 91) || (num > 47 && num < 58)) {
-				qe->lasthint[i] = '-';
+				qe->lasthint[i] = tc->hintchar;
 			}
 		}
 	}
@@ -487,9 +506,19 @@ void do_hint(TriviaChan *tc)
 			swlt= 0;
 			for (i2=ws ; i2 <= we ; i2++) {
 				num = (int)qe->answer[i2];
-				if (qe->lasthint[i2] == '-' && ((num > 96 && num < 123) || (num > 64 && num < 91) || (num > 47 && num < 58))) {
+				if (qe->lasthint[i2] == tc->hintchar && ((num > 96 && num < 123) || (num > 64 && num < 91) || (num > 47 && num < 58))) {
 					if (swl == swlt) {
-						qe->lasthint[i2] = qe->answer[i2];
+						if (tc->boldcase > 1 && ((qe->answer[i2] >= 'a' && qe->answer[i2] <= 'z') || (qe->answer[i2] >= 'A' && qe->answer[i2] <= 'Z'))) {
+							if (tc->boldcase > 3 && qe->answer[i2] > 'Z') {
+								qe->lasthint[i2] = (qe->answer[i2] - ('a' - 'A'));
+							} else if (tc->boldcase > 1 && tc->boldcase < 4 && qe->answer[i2] < 'A') {
+								qe->lasthint[i2] = (qe->answer[i2] + ('a' - 'A'));
+							} else {
+								qe->lasthint[i2] = qe->answer[i2];
+							}
+						} else {
+							qe->lasthint[i2] = qe->answer[i2];
+						}
 						break;
 					}
 					swlt++;
@@ -504,7 +533,7 @@ void do_hint(TriviaChan *tc)
 		}
 	}
 	qe->hints++;
-	irc_chanprivmsg (tvs_bot, tc->name, "Hint %d: %s", qe->hints, qe->lasthint);
+	irc_chanprivmsg (tvs_bot, tc->name, "\003%d%sHint %d: %s", tc->hintcolour, (tc->boldcase %2) ? "\002" : "", qe->hints, qe->lasthint);
 }
 
 /*
@@ -512,7 +541,7 @@ void do_hint(TriviaChan *tc)
 */
 void obscure_question(TriviaChan *tc) 
 {
-	char *out;
+	char *out, *tmpcolour, *tmpunseen, *tmpstr;
 	Questions *qe;
 	int random, i;
 
@@ -521,8 +550,35 @@ void obscure_question(TriviaChan *tc)
 		return;
 	}
 	qe = tc->curquest;     
+	/* set question colour and hidden letters colour */
+	tmpstr = ns_calloc (BUFSIZE);
+	tmpcolour = ns_calloc (BUFSIZE);
+	strlcpy(tmpcolour, "\003", BUFSIZE);
+	if (tc->foreground < 10) {
+		strlcat(tmpcolour, "0", BUFSIZE);
+	}
+	ircsnprintf(tmpstr, BUFSIZE, "%d,", tc->foreground);
+	strlcat(tmpcolour, tmpstr, BUFSIZE);
+	if (tc->background < 10) {
+		strlcat(tmpcolour, "0", BUFSIZE);
+	}
+	ircsnprintf(tmpstr, BUFSIZE, "%d", tc->background);
+	strlcat(tmpcolour, tmpstr, BUFSIZE);
+	tmpunseen = ns_calloc (BUFSIZE);
+	strlcpy(tmpunseen, "\003", BUFSIZE);
+	if (tc->background < 10) {
+		strlcat(tmpunseen, "0", BUFSIZE);
+	}
+	ircsnprintf(tmpstr, BUFSIZE, "%d,", tc->background);
+	strlcat(tmpunseen, tmpstr, BUFSIZE);
+	if (tc->background < 10) {
+		strlcat(tmpunseen, "0", BUFSIZE);
+	}
+	ircsnprintf(tmpstr, BUFSIZE, "%d", tc->background);
+	strlcat(tmpunseen, tmpstr, BUFSIZE);
+	/* obscure question using definded channel colours, and send to channel */
 	out = ns_calloc (BUFSIZE+1);
-	strlcpy(out, "\00304,01", BUFSIZE);
+	strlcpy(out, tmpcolour, BUFSIZE);
 	for (i=0;i < (int)strlen(qe->question);i++) {
 		if (qe->question[i] == ' ') {
 			/* get random letter */
@@ -531,16 +587,29 @@ void obscure_question(TriviaChan *tc)
 				random += 5;
 			}
 			/* insert same background/foreground color here */
-			strlcat(out, "\00301,01", BUFSIZE);
+			strlcat(out, tmpunseen, BUFSIZE);
 			/* insert random char here */
 			out[strlen(out)] = random;
 			/* reset color back to standard for next word. */
-			strlcat(out, "\00304,01", BUFSIZE);
+			strlcat(out, tmpcolour, BUFSIZE);
 		} else {
-			/* just insert the char, its a word */
-			out[strlen(out)] = qe->question[i];
+			/* insert the char, changing case if required, its a word */
+			if (tc->boldcase > 1 && ((qe->question[i] >= 'a' && qe->question[i] <= 'z') || (qe->question[i] >= 'A' && qe->question[i] <= 'Z'))) {
+				if (tc->boldcase > 3 && qe->question[i] > 'Z') {
+					out[strlen(out)] = (qe->question[i] - ('a' - 'A'));
+				} else if (tc->boldcase > 1 && tc->boldcase < 4 && qe->question[i] < 'a') {
+					out[strlen(out)] = (qe->question[i] + ('a' - 'A'));
+				} else {
+					out[strlen(out)] = qe->question[i];
+				}
+			} else {
+				out[strlen(out)] = qe->question[i];
+			}
 		}
 	}
-	irc_chanprivmsg (tvs_bot, tc->name, "%s", out);
+	irc_chanprivmsg (tvs_bot, tc->name, "%s%s", (tc->boldcase % 2) ? "\002" : "", out);
+	ns_free (tmpstr);
+	ns_free (tmpcolour);
+	ns_free (tmpunseen);
 	ns_free (out);
 }

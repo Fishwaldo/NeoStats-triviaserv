@@ -1,5 +1,5 @@
 /* NeoStats - IRC Statistical Services 
-** Copyright (c) 1999-2005 Adam Rutter, Justin Hammond, Mark Hetherington
+** Copyright (c) 1999-2005 Adam Rutter, Justin Hammond, Mark Hetherington, DeadNotBuried
 ** http://www.neostats.net/
 **
 **  Portions Copyright (c) 2000-2001 ^Enigma^
@@ -91,6 +91,8 @@ static bot_cmd tvs_commands[]=
 	{"PUBLIC",	tvs_cmd_pc,		1, 	0,			tvs_help_pc,		tvs_help_pc_oneline,		CMD_FLAG_CHANONLY},
 	{"OPCHAN",	tvs_cmd_opchan,		1, 	0,			tvs_help_opchan,	tvs_help_opchan_oneline,	CMD_FLAG_CHANONLY},
 	{"RESETSCORES",	tvs_cmd_resetscores,	1, 	0,			tvs_help_resetscores,	tvs_help_resetscores_oneline,	CMD_FLAG_CHANONLY},
+	{"COLOUR",	tvs_cmd_colour,		2, 	0,			tvs_help_colour,	tvs_help_colour_oneline,	CMD_FLAG_CHANONLY},
+	{"HINTCHAR",	tvs_cmd_hintchar,	1, 	0,			tvs_help_hintchar,	tvs_help_hintchar_oneline,	CMD_FLAG_CHANONLY},
 	{NULL,		NULL,			NULL, 	NULL,			NULL, 			NULL}
 };
 
@@ -427,7 +429,7 @@ int tvs_processtimer(void)
 			}
 			/* hint processor */
 			if ((tc->questtime - timediff) < 15) {
-				irc_chanprivmsg (tvs_bot, tc->name, "Less than %ld Seconds Remaining, Hurry up!", (long)(tc->questtime - timediff + 10));
+				irc_chanprivmsg (tvs_bot, tc->name, "\003%d%sLess than %ld Seconds Remaining, Hurry up!", tc->messagecolour, (tc->boldcase %2) ? "\002" : "", (long)(tc->questtime - timediff + 10));
 				continue;
 			}
 			do_hint(tc);
