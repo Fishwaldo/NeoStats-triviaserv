@@ -155,6 +155,7 @@ int UmodeUser (CmdParams* cmdparams) {
 			tu->lastusedreg = 1;
 		}
 	}
+	return NS_SUCCESS;
 }
 
 /*
