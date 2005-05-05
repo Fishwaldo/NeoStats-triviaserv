@@ -462,7 +462,6 @@ int tvs_clearscoretimers(int ct) {
 	TriviaChan *tc;
 	hscan_t hs;
 	hnode_t *hnodes;
-	time_t timediff;	
 
 	hash_scan_begin(&hs, tch);
 	while ((hnodes = hash_scan_next(&hs)) != NULL) {
