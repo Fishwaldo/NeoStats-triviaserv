@@ -27,11 +27,6 @@
  *  Trivia Service for NeoStats
  */
 
-#ifdef WIN32
-#include "modconfigwin32.h"
-#else
-#include "modconfig.h"
-#endif
 #include "neostats.h"	/* Neostats API */
 #include "TriviaServ.h"
 #ifdef HAVE_SYS_DIR_H

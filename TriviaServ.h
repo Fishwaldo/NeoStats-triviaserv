@@ -24,9 +24,7 @@
 #ifndef TRIVIASERV_H
 #define TRIVIASERV_H
 
-#ifndef WIN32
-#include "modconfig.h"
-#endif
+#include MODULECONFIG
 
 #define TVSREXEXP "^(.*)\\*(.*)$"
 #define QUESTSIZE 500
