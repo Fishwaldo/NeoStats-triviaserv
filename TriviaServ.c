@@ -471,17 +471,17 @@ int tvs_clearscoretimers(int ct) {
 						tc->lastreset = me.now;
 						break;
 					case 4:
-						if (tc->lastreset < (me.now - (86 * 86400))) {
+						if (tc->lastreset < (me.now - (86 * TS_ONE_DAY))) {
 							tc->lastreset = me.now;
 						}
 						break;
 					case 5:
-						if (tc->lastreset < (me.now - (177 * 86400))) {
+						if (tc->lastreset < (me.now - (177 * TS_ONE_DAY))) {
 							tc->lastreset = me.now;
 						}
 						break;
 					case 6:
-						if (tc->lastreset < (me.now - (363 * 86400))) {
+						if (tc->lastreset < (me.now - (363 * TS_ONE_DAY))) {
 							tc->lastreset = me.now;
 						}
 						break;

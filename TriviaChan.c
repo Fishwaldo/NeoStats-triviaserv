@@ -88,7 +88,7 @@ TriviaChan *NewTChan(Channel *c)
 	strlcpy (tc->name, c->name, MAXCHANLEN);
 	tc->c = c;
 	tc->scorepoints = TriviaServ.defaultpoints;
-	tc->questtime = 60;
+	tc->questtime = TS_ONE_MINUTE;
 	tc->opchan = 1;
 	tc->resettype = 0;
 	tc->lastreset = me.now;
