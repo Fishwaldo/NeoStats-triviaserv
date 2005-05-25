@@ -75,20 +75,20 @@ ModuleInfo module_info = {
 
 static bot_cmd tvs_commands[]=
 {
-	{"CHANS",	tvs_chans,		1,	NS_ULEVEL_ADMIN,	tvs_help_chans,		tvs_help_chans_oneline },
-	{"CATLIST",	tvs_catlist,		0, 	0,			tvs_help_catlist,	tvs_help_catlist_oneline },
-	{"SCORE",	tvs_cmd_score,		0, 	0,			NULL,			NULL},
-	{"HINT",	tvs_cmd_hint,		0, 	0,			NULL,			NULL},
-	{"START",	tvs_cmd_start,		0, 	0,			tvs_help_start,		tvs_help_start_oneline,		CMD_FLAG_CHANONLY},
-	{"STOP",	tvs_cmd_stop,		0, 	0,			tvs_help_stop,		tvs_help_stop_oneline,		CMD_FLAG_CHANONLY},
-	{"QS",		tvs_cmd_qs,		1, 	0,			tvs_help_qs,		tvs_help_qs_oneline,		CMD_FLAG_CHANONLY},
-	{"SETPOINTS",	tvs_cmd_sp,		1, 	0,			tvs_help_sp,		tvs_help_sp_oneline,		CMD_FLAG_CHANONLY},
-	{"PUBLIC",	tvs_cmd_pc,		1, 	0,			tvs_help_pc,		tvs_help_pc_oneline,		CMD_FLAG_CHANONLY},
-	{"OPCHAN",	tvs_cmd_opchan,		1, 	0,			tvs_help_opchan,	tvs_help_opchan_oneline,	CMD_FLAG_CHANONLY},
-	{"RESETSCORES",	tvs_cmd_resetscores,	1, 	0,			tvs_help_resetscores,	tvs_help_resetscores_oneline,	CMD_FLAG_CHANONLY},
-	{"COLOUR",	tvs_cmd_colour,		2, 	0,			tvs_help_colour,	tvs_help_colour_oneline,	CMD_FLAG_CHANONLY},
-	{"HINTCHAR",	tvs_cmd_hintchar,	1, 	0,			tvs_help_hintchar,	tvs_help_hintchar_oneline,	CMD_FLAG_CHANONLY},
-	{NULL,		NULL,			NULL, 	NULL,			NULL, 			NULL}
+	{"CHANS",	tvs_chans,		1,	NS_ULEVEL_ADMIN,	tvs_help_chans},
+	{"CATLIST",	tvs_catlist,		0, 	0,			tvs_help_catlist},
+	{"SCORE",	tvs_cmd_score,		0, 	0,			NULL},
+	{"HINT",	tvs_cmd_hint,		0, 	0,			NULL},
+	{"START",	tvs_cmd_start,		0, 	0,			tvs_help_start,		CMD_FLAG_CHANONLY},
+	{"STOP",	tvs_cmd_stop,		0, 	0,			tvs_help_stop,		CMD_FLAG_CHANONLY},
+	{"QS",		tvs_cmd_qs,		1, 	0,			tvs_help_qs,		CMD_FLAG_CHANONLY},
+	{"SETPOINTS",	tvs_cmd_sp,		1, 	0,			tvs_help_sp,		CMD_FLAG_CHANONLY},
+	{"PUBLIC",	tvs_cmd_pc,		1, 	0,			tvs_help_pc,		CMD_FLAG_CHANONLY},
+	{"OPCHAN",	tvs_cmd_opchan,		1, 	0,			tvs_help_opchan,	CMD_FLAG_CHANONLY},
+	{"RESETSCORES",	tvs_cmd_resetscores,	1, 	0,			tvs_help_resetscores,	CMD_FLAG_CHANONLY},
+	{"COLOUR",	tvs_cmd_colour,		2, 	0,			tvs_help_colour,	CMD_FLAG_CHANONLY},
+	{"HINTCHAR",	tvs_cmd_hintchar,	1, 	0,			tvs_help_hintchar,	CMD_FLAG_CHANONLY},
+	{NULL,		NULL,			0, 	0,			NULL}
 };
 
 static bot_setting tvs_settings[]=

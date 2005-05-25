@@ -38,6 +38,7 @@ const char *tvs_help_set_defaultpoints[] = {
 };
 
 const char *tvs_help_chans[] = {
+	"Add/Delete Trivia Channels",
 	"Syntax: \2CHANS LIST\2",
 	"        \2CHANS ADD <channel> <PublicControl>\2",
 	"        \2CHANS DEL <channel> <PublicControl>\2",
@@ -53,31 +54,30 @@ const char *tvs_help_chans[] = {
 	"\2DEL\2 will delete <channel> from the Trivia Channels",
 	NULL
 };
-const char tvs_help_chans_oneline[] = "Add/Delete Trivia Channels";
 
 const char *tvs_help_catlist[] = {
+	"Display Question Category List",
 	"Displays a list of ALL available Question Categories",
 	NULL
 };
-const char tvs_help_catlist_oneline[] = "Display Question Category List";
-
 const char *tvs_help_start[] = {
+	"Start Trivia",
 	"Syntax: (in Channel only) \2!START\2",
 	"",
 	"Starts Asking Questions in channel",
 	NULL
 };
-const char tvs_help_start_oneline[] = "Start Trivia";
 
 const char *tvs_help_stop[] = {
+	"Stop Trivia",
 	"Syntax: (in Channel only) \2!STOP\2",
 	"",
 	"Stops Asking Questions in channel",
 	NULL
 };
-const char tvs_help_stop_oneline[] = "Stop Trivia";
 
 const char *tvs_help_qs[] = {
+	"Change Question Sets In Channel",
 	"Syntax: (in Channel only)",
 	"        \2!QS LIST\2",
 	"        \2!QS ADD <category>\2",
@@ -95,9 +95,9 @@ const char *tvs_help_qs[] = {
 	"\2RESET\2 will Set the Questions asked back to the default.",
 	NULL
 };
-const char tvs_help_qs_oneline[] = "Change Question Sets In Channel";
 
 const char *tvs_help_sp[] = {
+	"Set points for correct answer",
 	"Syntax: (in Channel only)",
 	"        \2!SETPOINTS <#>\2",
 	"",
@@ -107,9 +107,9 @@ const char *tvs_help_sp[] = {
 	"NOTE: This does not affect the network wide scores.",
 	NULL
 };
-const char tvs_help_sp_oneline[] = "Set points for correct answer";
 
 const char *tvs_help_pc[] = {
+	"Set public control",
 	"Syntax: (in Channel only)",
 	"        \2!PUBLIC <ON/OFF>\2",
 	"",
@@ -117,9 +117,9 @@ const char *tvs_help_pc[] = {
 	"Trivia, If OFF , only Chanops can Start/Stop.",
 	NULL
 };
-const char tvs_help_pc_oneline[] = "Set public control";
 
 const char *tvs_help_opchan[] = {
+	"Set CHANOP level",
 	"Syntax: (in Channel only)",
 	"        \2!OPCHAN <ON/OFF>\2",
 	"",
@@ -128,9 +128,9 @@ const char *tvs_help_opchan[] = {
 	"If OFF it will sit as a normal user in the Channel.",
 	NULL
 };
-const char tvs_help_opchan_oneline[] = "Set CHANOP level";
 
 const char *tvs_help_resetscores[] = {
+	"Set time duration to reset Channel scores",
 	"Syntax: (in Channel only)",
 	"        \2!RESETSCORES <#>\2",
 	"",
@@ -147,9 +147,9 @@ const char *tvs_help_resetscores[] = {
 	"6 -> Reset Scores Anually",
 	NULL
 };
-const char tvs_help_resetscores_oneline[] = "Set time duration to reset Channel scores";
 
 const char *tvs_help_colour[] = {
+	"Set question colour/bold/case",
 	"Syntax: (in Channel only)",
 	"        \2!COLOUR <foreground> <background> [<hintcolour>] [<messagecolour>] [B] [U|L]\2",
 	"",
@@ -167,13 +167,12 @@ const char *tvs_help_colour[] = {
 	"Note: Uppercase Overrides Lowercase processing.",
 	NULL
 };
-const char tvs_help_colour_oneline[] = "Set question colour/bold/case";
 
 const char *tvs_help_hintchar[] = {
+	"Set question hint character",
 	"Syntax: (in Channel only)",
 	"        \2!HINTCHAR <hintcharacter>\2",
 	"",
 	"Sets the hint character replacing letters in the answer",
 	NULL
 };
-const char tvs_help_hintchar_oneline[] = "Set question hint character";

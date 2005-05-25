@@ -117,27 +117,16 @@ extern const char *tvs_about[];
 extern const char *tvs_help_set_exclusions[];
 extern const char *tvs_help_set_defaultpoints[];
 extern const char *tvs_help_chans[];
-extern const char tvs_help_chans_oneline[];
 extern const char *tvs_help_catlist[];
-extern const char tvs_help_catlist_oneline[];
 extern const char *tvs_help_start[];
-extern const char tvs_help_start_oneline[];
 extern const char *tvs_help_stop[];
-extern const char tvs_help_stop_oneline[];
 extern const char *tvs_help_qs[];
-extern const char tvs_help_qs_oneline[];
 extern const char *tvs_help_sp[];
-extern const char tvs_help_sp_oneline[];
 extern const char *tvs_help_pc[];
-extern const char tvs_help_pc_oneline[];
 extern const char *tvs_help_opchan[];
-extern const char tvs_help_opchan_oneline[];
 extern const char *tvs_help_resetscores[];
-extern const char tvs_help_resetscores_oneline[];
 extern const char *tvs_help_colour[];
-extern const char tvs_help_colour_oneline[];
 extern const char *tvs_help_hintchar[];
-extern const char tvs_help_hintchar_oneline[];
 
 /* TriviaUser.c */
 void tvs_addpoints(Client *u, TriviaChan *tc);
