@@ -48,7 +48,7 @@ int tvs_processtimer (void);
 int tvs_dailytimer (void);
 int tvs_weeklytimer (void);
 int tvs_monthlytimer (void);
-int tvs_clearscoretimers (int ct);
+int tvs_clearscoretimers (int cleartype);
 
 Bot *tvs_bot;
 
@@ -95,6 +95,7 @@ static bot_setting tvs_settings[]=
 {
 	{"EXCLUSIONS", 		&TriviaServ.use_exc,		SET_TYPE_BOOLEAN,	0,	0, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_exclusions,	NULL,	(void *) 0},
 	{"DEFAULTPOINTS", 	&TriviaServ.defaultpoints,	SET_TYPE_INT,		1,	25, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_defaultpoints,	NULL,	(void *) 1},
+	{"RESETTYPE",	 	&TriviaServ.resettype,		SET_TYPE_INT,		0,	6, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_resettype,		NULL,	(void *) 0},
 	{NULL,			NULL,				0,			0,	0,		0,			NULL,	NULL,				NULL,	NULL},
 };
 
@@ -109,9 +110,8 @@ int ChanPrivmsg (CmdParams* cmdparams)
 	
 	/* find if its our channel. */
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
-	if (!tc) {
+	if (!tc)
 		return NS_FAILURE;
-	}
 	len = strlen( cmdparams->param ) + 1;
 	tmpbuf = ns_malloc( len );
 	strlcpy( tmpbuf, cmdparams->param, len );
@@ -152,17 +152,16 @@ int ModSynch (void)
 	
 	/* Introduce a bot onto the network */
 	tvs_bot = AddBot (&tvs_botinfo);
-	if (!tvs_bot) {
+	if (!tvs_bot)
 		return NS_FAILURE;
-	}
 	irc_chanalert (tvs_bot, "Successfully Started, %ld questions loaded", TriviaServ.Questions);
 	hash_scan_begin(&hs, tch);
-	while ((hnodes = hash_scan_next(&hs)) != NULL) {
+	while (hnodes = hash_scan_next(&hs)) 
+	{
 		tc = hnode_get(hnodes);
 		c = FindChannel (tc->name);
-		if (c) {
+		if (c)
 			OnlineTChan(c);
-		}
 	}
 	/* kick of the question/answer timer */
 	AddTimer (TIMER_TYPE_INTERVAL, tvs_processtimer, "tvs_processtimer", 10);
@@ -198,6 +197,11 @@ int ModInit( void )
 	pcre_free = os_free;
 #endif
 	ModuleConfig (tvs_settings);
+	if (DBAFetchConfigInt("LastReset", TriviaServ.lastreset) != NS_SUCCESS)
+	{
+		TriviaServ.lastreset = 0;
+		DBAStoreConfigInt("LastReset", TriviaServ.lastreset);
+	}
 	TriviaServ.Questions = 0;
 	qfl = list_create(-1);
 	userlist = list_create(-1);
@@ -229,9 +233,11 @@ int ModFini( void )
 
 	SaveAllUserScores();
 	hash_scan_begin(&hs, tch);
-	while ((hnodes = hash_scan_next(&hs)) != NULL) {
+	while (hnodes = hash_scan_next(&hs)) 
+	{
 		tc = hnode_get(hnodes);
-		if (tc->c) {
+		if (tc->c) 
+		{
 			c = tc->c;
 			ClearChannelModValue (c);
 		}
@@ -241,15 +247,16 @@ int ModFini( void )
 		ns_free (tc);
 	}
 	lnodes = list_first(qfl);
-	while (lnodes != NULL) {
+	while (lnodes) {
 		qf = lnode_get(lnodes);
-		if (qf->fn) {
+		if (qf->fn)
 			os_fclose (qf->fn);
-		}
 		ln3 = list_first(qf->QE);
-		while (ln3 != NULL) {
+		while (ln3) 
+		{
 			qe = lnode_get(ln3);
-			if (qe->question) {
+			if (qe->question) 
+			{
 				ns_free (qe->question);
 				ns_free (qe->answer);
 				ns_free (qe->lasthint);
@@ -260,7 +267,6 @@ int ModFini( void )
 			ns_free (qe);
 			ln3 = ln4;
 		}
-
 		list_delete(qfl, lnodes);
 		ln2 = list_next(qfl, lnodes);
 		lnode_destroy(lnodes);	
@@ -282,13 +288,11 @@ int ModFini( void )
 #ifndef WIN32
 int file_select (const struct direct *entry) {
 	char *ptr;
-	if ((ircstrcasecmp(entry->d_name, ".")==0) || (ircstrcasecmp(entry->d_name, "..")==0)) {
+	if ((ircstrcasecmp(entry->d_name, ".")==0) || (ircstrcasecmp(entry->d_name, "..")==0)) 
 		return 0;
-	}
 	/* check filename extension */
 	ptr = rindex(entry->d_name, '.');
-	if ((ptr != NULL) && 
-		(ircstrcasecmp(ptr, ".qns") == 0)) {
+	if ((ptr) && !(ircstrcasecmp(ptr, ".qns"))) {
 			return NS_SUCCESS;
 	}
 	return 0;	
@@ -364,22 +368,26 @@ int tvs_get_settings() {
 #ifndef WIN32
 	struct direct **files;
 
+	SET_SEGV_LOCATION();
 	/* Scan the questions directory for question files, and create the hashs */
 	count = scandir (questpath, &files, file_select, alphasort);
 #else
 	{
 		char** pfilelist = filelist;
-		while(*pfilelist) {
+		while(*pfilelist) 
+		{
 			count ++;
 			pfilelist ++;
 		}
 	}
 #endif
-	if (count <= 0) {
+	if (count <= 0) 
+	{
 		nlog(LOG_CRITICAL, "No Question Files Found");
 		return NS_FAILURE;
 	}
-	for (i = 1; i<count; i++) {
+	for (i = 1; i<count; i++) 
+	{
 		qf = ns_calloc (sizeof(QuestionFiles));
 #ifndef WIN32
 		strlcpy(qf->filename, files[i-1]->d_name, MAXPATH);
@@ -403,27 +411,33 @@ int tvs_processtimer(void)
 	hnode_t *hnodes;
 	time_t timediff;
 
+	SET_SEGV_LOCATION();
 	/* reseed the random generator */
 	if (!(rand() % 4)) 
 		srand((unsigned int)me.now);
 	hash_scan_begin(&hs, tch);
-	while ((hnodes = hash_scan_next(&hs)) != NULL) {
+	while (hnodes = hash_scan_next(&hs)) 
+	{
 		tc = hnode_get(hnodes);
-		if ((tc->c != NULL) && (tc->active == 1)) {
+		if ((tc->c) && (tc->active == 1)) 
+		{
 			/* ok, channel is active. if curquest is null, ask a new question */
-			if (tc->curquest == NULL) {
+			if (!tc->curquest) 
+			{
 				tvs_newquest(tc);
 				continue;
 			}
 			/* if we are here, its a current question. */
 			timediff = me.now - tc->lastquest;
-			if (timediff > tc->questtime) {
+			if (timediff > tc->questtime) 
+			{
 				/* timeout, answer the question */
 				tvs_ansquest(tc);
 				continue;
 			}
 			/* hint processor */
-			if ((tc->questtime - timediff) < 15) {
+			if ((tc->questtime - timediff) < 15) 
+			{
 				irc_chanprivmsg (tvs_bot, tc->name, "\003%d%sLess than %ld Seconds Remaining, Hurry up!", tc->messagecolour, (tc->boldcase %2) ? "\002" : "", (long)(tc->questtime - timediff + 10));
 				continue;
 			}
@@ -436,59 +450,101 @@ int tvs_processtimer(void)
 /*
  * Process Timers to clear channel scores
 */
-int tvs_dailytimer(void) {
+int tvs_dailytimer(void) 
+{
+	SET_SEGV_LOCATION();
 	return tvs_clearscoretimers(1);
 }
 
-int tvs_weeklytimer(void) {
+int tvs_weeklytimer(void) 
+{
+	SET_SEGV_LOCATION();
 	return tvs_clearscoretimers(2);
 }
 
-int tvs_monthlytimer(void) {
+int tvs_monthlytimer(void) 
+{
 	int i;
 
-	for (i = 4 ; i < 7 ; i++) {
+	SET_SEGV_LOCATION();
+	for (i = 4 ; i < 7 ; i++)
 		tvs_clearscoretimers(i);
-	}
 	return tvs_clearscoretimers(3);
 }
 
-int tvs_clearscoretimers(int ct) {
+int tvs_clearscoretimers(int cleartype) {
 	TriviaChan *tc;
 	hscan_t hs;
 	hnode_t *hnodes;
 
+	/* clear types :
+	 * 1 = Daily
+	 * 2 = Weekly
+	 * 3 = Monthly
+	 * 4 = Quarterly
+	 * 5 = Bi-Annually
+	 * 6 = Annually
+	 */ 
+	/* clear channel scores if needed */
 	hash_scan_begin(&hs, tch);
-	while ((hnodes = hash_scan_next(&hs)) != NULL) {
+	while (hnodes = hash_scan_next(&hs)) 
+	{
 		tc = hnode_get(hnodes);
-		if (tc != NULL) {
+		if (tc) 
+		{
 			/* for each channel check if to be cleared */
-			if (tc->resettype = ct) {
-				switch (ct) {
+			if (tc->resettype = cleartype) 
+			{
+				switch (cleartype) 
+				{
 					case 1:
 					case 2:
 					case 3:
+						/* Daily Weekly and Monthly do the same */
 						tc->lastreset = me.now;
 						break;
 					case 4:
-						if (tc->lastreset < (me.now - (86 * TS_ONE_DAY))) {
+						if (tc->lastreset < (me.now - (86 * TS_ONE_DAY))) 
 							tc->lastreset = me.now;
-						}
 						break;
 					case 5:
-						if (tc->lastreset < (me.now - (177 * TS_ONE_DAY))) {
+						if (tc->lastreset < (me.now - (177 * TS_ONE_DAY))) 
 							tc->lastreset = me.now;
-						}
 						break;
 					case 6:
-						if (tc->lastreset < (me.now - (363 * TS_ONE_DAY))) {
+						if (tc->lastreset < (me.now - (363 * TS_ONE_DAY))) 
 							tc->lastreset = me.now;
-						}
 						break;
 				}
 				SaveTChan(tc);
 			}
 		}
+	}
+	/* clear Network scores if needed */
+	if (TriviaServ.resettype = cleartype) 
+	{
+		switch (cleartype) 
+		{
+			case 1:
+			case 2:
+			case 3:
+				/* Daily Weekly and Monthly do the same */
+				TriviaServ.lastreset = me.now;
+				break;
+			case 4:
+				if (TriviaServ.lastreset < (me.now - (86 * 86400)))
+					TriviaServ.lastreset = me.now;
+				break;
+			case 5:
+				if (TriviaServ.lastreset < (me.now - (177 * 86400)))
+					TriviaServ.lastreset = me.now;
+				break;
+			case 6:
+				if (TriviaServ.lastreset < (me.now - (363 * 86400)))
+					TriviaServ.lastreset = me.now;
+				break;
+		}
+		DBAStoreConfigInt("LastReset", TriviaServ.lastreset);
 	}
 	return NS_SUCCESS;
 }

@@ -24,16 +24,31 @@
 #include "neostats.h"	/* Neostats API */
 
 const char *tvs_about[] = {
-	"Trivia Service",
+	"NeoStats Trivia Game Service",
 	NULL
 };
 const char *tvs_help_set_exclusions[] = {
-	"help",
+	"\2EXCLUSIONS <ON|OFF>\2",
+	"use global exclusion list",
 	NULL
 };
 
 const char *tvs_help_set_defaultpoints[] = {
-	"Sets Default/Network Points for a correct Answer (1 to 25)",
+	"\2DEFAULTPOINTS <#>\2",
+	"Sets Default Channel and Network Points for a correct Answer (1 to 25)",
+	NULL
+};
+
+const char *tvs_help_set_resettype[] = {
+	"\2!RESETTYPE <#>\2",
+	"Valid options are :",
+	"0 -> Never Reset Network Scores",
+	"1 -> Reset Network Scores Daily",
+	"2 -> Reset Network Scores Weekly",
+	"3 -> Reset Network Scores Monthly",
+	"4 -> Reset Network Scores Quarterly",
+	"5 -> Reset Network Scores Bi-Anually",
+	"6 -> Reset Network Scores Anually",
 	NULL
 };
 

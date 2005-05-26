@@ -36,88 +36,88 @@
 void tvs_addpoints(Client *u, TriviaChan *tc) 
 {
 	TriviaUser *tu;
-	TriviaChannelScore *ts, *tst;
+	TriviaChannelScore *ts;
 	Questions *qe;
 	lnode_t *ln;
 	
-	if (!u | !tc->curquest) {
+	if (!u | !tc->curquest) 
+	{
 		nlog(LOG_WARNING, "Can't find user for AddPoints?!");
 		return;
 	}
 	tu = (TriviaUser *)GetUserModValue(u);
-	if (!tu) {
+	if (!tu) 
+	{
 		tu = ns_calloc(sizeof(TriviaUser));
-		if (!(u->user->Umode & UMODE_REGNICK)) {
+		if (!(u->user->Umode & UMODE_REGNICK)) 
+		{
 			tu->lastusedreg = 0;
-			tst = NULL;
+			tu->networkscore = 0;
 		} else {
 			tu->lastusedreg = 1;
-			tst = GetUsersChannelScore(u->name, "Network");
+			tu->networkscore = GetUsersChannelScore(u, NULL);
 		}
 		strlcpy(tu->lastusednick, u->name, MAXNICK);
-		if (!tst) {
-			tu->networkscore = 0;
-			tu->lastused = 0;
-		} else {
-			tu->networkscore = tst->score;
-			tu->lastused = tst->lastused;
-		}
+		tu->lastused = 0;
 		tu->tcsl = list_create(-1);
 		SetUserModValue (u, tu);
 		lnode_create_append(userlist, u);
 	}
 	ln = list_first(tu->tcsl);
-	while (ln != NULL) {
+	while (ln) 
+	{
 		ts = lnode_get(ln);
-		if (!ircstrcasecmp(tc->c->name, ts->cname)) {
+		if (!ircstrcasecmp(tc->c->name, ts->cname))
 			break;
-		}
 		ln = list_next(tu->tcsl, ln);
 	}
-	if (ln == NULL) {
+	if (!ln) 
+	{
 		ts = ns_calloc(sizeof(TriviaChannelScore));
-		if (!tu->lastusedreg) {
-			tst = NULL;
-		} else {
-			tst = GetUsersChannelScore(u->name, tc->c->name);
-		}
-		if (!tst) {
+		if (!tu->lastusedreg)
 			ts->score = 0;
-			ts->lastused = 0;
-		} else {
-			ts->score = tst->score;
-			ts->lastused = tst->lastused;
-		}
+		else
+			ts->score = GetUsersChannelScore(u, tc);
+		ts->lastused = 0;
 		strlcpy(ts->cname, tc->c->name, MAXCHANLEN);
 		ts->savename[0] = '\0';
 		strlcpy(ts->uname, u->name, MAXNICK);
 		lnode_create_append(tu->tcsl, ts);
 	}
-	if (!tu->lastusedreg && tu->lastused < (me.now - 900)) {
+	if (!tu->lastusedreg && tu->lastused < (me.now - 900)) 
 		irc_prefmsg (tvs_bot, u, "If you want your score to be kept between sessions, you should register and identify for your nickname");
-	}
+	if (TriviaServ.resettype &&  tu->lastused > 0 && tu->lastused < TriviaServ.lastreset)
+		tu->networkscore = 0;
 	tu->networkscore += TriviaServ.defaultpoints;
 	tu->lastused = me.now;
 	qe = tc->curquest;
-	if (ts->lastused < tc->lastreset) {
+	if (ts->lastused > 0 && ts->lastused < tc->lastreset)
 		ts->score = 0;
-	}
 	ts->score += qe->points;
 	ts->lastused = me.now;
 	/* showing network wide here for testing, will be removed once !score command created */
-	irc_chanprivmsg (tvs_bot, tc->name, "%s now has %d Points in %s, and %d points network wide", u->name, ts->score, tc->c->name, tu->networkscore);
+	irc_chanprivmsg (tvs_bot, tc->name, "\003%d%s%s\003%d now has\003%d %d\003%d Points in\003%d %s\003%d , and\003%d %d\003%d points network wide", tc->hintcolour, (tc->boldcase % 2) ? "\002" : "", u->name, tc->foreground, tc->hintcolour, ts->score, tc->foreground, tc->hintcolour, tc->c->name, tc->foreground, tc->hintcolour, tu->networkscore, tc->foreground);
 	return;
 }	
 
 /*
- * Load Users Score For Channel If Exists
+ * Return Users Score For Channel If Exists
 */
-TriviaChannelScore *GetUsersChannelScore (char *uname, char *cname) {
+int GetUsersChannelScore (Client *u, TriviaChan *tc) {
 	TriviaChannelScore *ts;
+	int channelscore = 0;
 	
-	ircsnprintf(ts->savename, sizeof(ts->savename), "%s%s", uname, cname);
-	DBAFetch( "Scores", ts->savename, ts, sizeof(TriviaChannelScore));
-	return ts;
+	ts = ns_calloc(sizeof(TriviaChannelScore));
+	if (tc)
+		ircsnprintf(ts->savename, sizeof(ts->savename), "%s%s", u->name, tc->c->name);
+	else
+		ircsnprintf(ts->savename, sizeof(ts->savename), "%sNetwork", u->name);
+	/* return score only if not reset since the last correct answer, else return 0 */
+	if (DBAFetch( "Scores", ts->savename, ts, sizeof(TriviaChannelScore)))
+		if (((!tc) && TriviaServ.lastreset < ts->lastused) || ((tc) && tc->lastreset < ts->lastused))
+			channelscore = ts->score;
+	ns_free(ts)
+	return channelscore;
 }
 
 /*
@@ -127,33 +127,27 @@ TriviaChannelScore *GetUsersChannelScore (char *uname, char *cname) {
 */
 int UmodeUser (CmdParams* cmdparams) {
 	TriviaUser *tu;
-	TriviaChannelScore *ts, *tst;
+	TriviaChannelScore *ts;
 	lnode_t *ln;
+	TriviaChan *tc;
+	hnode_t *tcn;
 
 	tu = (TriviaUser *)GetUserModValue(cmdparams->source);
-	if (tu) {
-		if (!tu->lastusedreg && (cmdparams->source->user->Umode & UMODE_REGNICK)) {
-			ln = list_first(tu->tcsl);
-			while (ln != NULL) {
-				ts = lnode_get(ln);
-				tst = GetUsersChannelScore(cmdparams->source->name, ts->cname);
-				if (tst) {
-					ts->score += tst->score;
-					if (tst->lastused > ts->lastused) {
-						ts->lastused = tst->lastused;
-					}
-				}
-				ln = list_next(tu->tcsl, ln);
-			}
-			tst = GetUsersChannelScore(cmdparams->source->name, "Network");
-			if (tst) {
-				tu->networkscore += tst->score;
-				if (tst->lastused > tu->lastused) {
-					tu->lastused = tst->lastused;
-				}
-			}
-			tu->lastusedreg = 1;
+	if (!tu) 
+		return NS_SUCCESS;
+	if (!tu->lastusedreg && (cmdparams->source->user->Umode & UMODE_REGNICK)) 
+	{
+		ln = list_first(tu->tcsl);
+		while (ln) 
+		{
+			ts = lnode_get(ln);
+			tcn = hash_lookup(tch, ts->cname);
+			tc = hnode_get(tcn);
+			ts->score += GetUsersChannelScore(cmdparams->source, tc);
+			ln = list_next(tu->tcsl, ln);
 		}
+		tu->networkscore += GetUsersChannelScore(cmdparams->source, NULL);
+		tu->lastusedreg = 1;
 	}
 	return NS_SUCCESS;
 }
@@ -165,12 +159,26 @@ int UmodeUser (CmdParams* cmdparams) {
  * to save users scores and free
  * module data attached to the user.
 */
-int QuitNickUser (CmdParams* cmdparams) {
-	return UserLeaving(cmdparams->source);
+int QuitNickUser (CmdParams* cmdparams) 
+{
+	TriviaUser *tu;
+
+	SET_SEGV_LOCATION();
+	tu = (TriviaUser *)GetUserModValue(cmdparams->source);
+	if (tu) 
+		UserLeaving(cmdparams->source);
+	return NS_SUCCESS;
 }
 
-int KillUser (CmdParams* cmdparams) {
-	return UserLeaving(cmdparams->target);
+int KillUser (CmdParams* cmdparams) 
+{
+	TriviaUser *tu;
+
+	SET_SEGV_LOCATION();
+	tu = (TriviaUser *)GetUserModValue(cmdparams->target);
+	if (tu) 
+		UserLeaving(cmdparams->target);
+	return NS_SUCCESS;
 }
 
 /*
@@ -182,59 +190,67 @@ int KillUser (CmdParams* cmdparams) {
  *		and add them to the current users score, removing the
  *		old from the database if they change nicks and identify again)
 */
-int UserLeaving (Client *u) {
+void UserLeaving (Client *u) 
+{
 	TriviaUser *tu;
 	TriviaChannelScore *ts;
-	lnode_t *ln;
+	lnode_t *ln, *ln2;
 	Client *ul;
 	
 	tu = (TriviaUser *)GetUserModValue(u);
-	if (tu) {
-		while (list_count(tu->tcsl) > 0) {
-			ln = list_first(tu->tcsl);
+	if (tu) 
+	{
+		ln = list_first(tu->tcsl);
+		while (ln) 
+		{
 			ts = lnode_get(ln);
-			if (tu->lastusedreg) {
+			if (tu->lastusedreg && ts->lastused > 0) 
+			{
 				ircsnprintf(ts->savename, sizeof(ts->savename), "%s%s", ts->uname, ts->cname);
-				DBADelete("Scores", ts->savename);
 				DBAStore( "Scores", ts->savename, ts, sizeof(TriviaChannelScore));
 			}
 			ns_free(ts);
+			ln2 = list_next(tu->tcsl, ln);
 			list_delete(tu->tcsl, ln);
 			lnode_destroy(ln);
+			ln = ln2;
 		}
 		list_destroy_auto(tu->tcsl);
 		tu->tcsl = NULL;
-		if (tu->lastusedreg) {
+		if (tu->lastusedreg && tu->lastused > 0) 
+		{
 			ts = ns_calloc(sizeof(TriviaChannelScore));
 			strlcpy(ts->cname, "Network", MAXCHANLEN);
 			strlcpy(ts->uname, tu->lastusednick, MAXNICK);
 			ts->score = tu->networkscore;
 			ts->lastused = tu->lastused;
 			ircsnprintf(ts->savename, sizeof(ts->savename), "%s%s", ts->uname, ts->cname);
-			DBADelete("Scores", ts->savename);
 			DBAStore( "Scores", ts->savename, ts, sizeof(TriviaChannelScore));
 			ns_free(ts);
 		}
-		ln = list_first(userlist);
-		while (ln != NULL) {
-			ul = lnode_get(ln);
-			if (ul == u) {
-				list_delete(userlist, ln);
-				lnode_destroy(ln);
-				break;
-			}
-			ln = list_next(userlist, ln);
-		}
-		ns_free(tu);
 		ClearUserModValue(u);
+		ns_free(tu);
 	}
-	return NS_SUCCESS;
+	ln = list_first(userlist);
+	while (ln) 
+	{
+		ul = lnode_get(ln);
+		if (ul == u) 
+		{
+			list_delete(userlist, ln);
+			lnode_destroy(ln);
+			break;
+		}
+		ln = list_next(userlist, ln);
+	}
+	return;
 }
 
 /*
  * Save all User scores when module unloads etc
 */
-void SaveAllUserScores(void) {
+void SaveAllUserScores(void) 
+{
 	lnode_t *ln;
 	Client *u;
 
@@ -242,7 +258,8 @@ void SaveAllUserScores(void) {
 	 * looks like a perm loop, but UserLeaving(u)
 	 * removes entries from the list
 	*/
-	while (list_count(userlist) > 0) {
+	while (list_count(userlist) > 0) 
+	{
 		ln = list_first(userlist);
 		u = lnode_get(ln);
 		UserLeaving(u);

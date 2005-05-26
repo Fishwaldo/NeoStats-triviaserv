@@ -33,7 +33,8 @@
 /*
  * Loads Channel Data
 */
-int LoadChannel( void *data, int size ) {
+int LoadChannel( void *data, int size ) 
+{
 	TriviaChan *tc;
 
 	tc = ns_calloc (sizeof(TriviaChan));
@@ -49,19 +50,26 @@ int LoadChannel( void *data, int size ) {
  * and attaches lists to channel via
  * tvs_quesset procedure
 */
-int LoadCQSets( void *data, int size ) {
+int LoadCQSets( void *data, int size ) 
+{
 	TriviaChan *tc;
 	hnode_t *tcn;
 	TriviaChannelQuestionFiles *tcqf;
 
+/*
 	tcqf = ns_calloc(sizeof(TriviaChannelQuestionFiles));
 	os_memcpy (tcqf, data, sizeof(TriviaChannelQuestionFiles));
+*/
+	tcqf = (TriviaChannelQuestionFiles *)data;
 	tcn = hash_lookup(tch, tcqf->cname);
-	if (tcn != NULL) {
+	if (tcn) 
+	{
 		tc = hnode_get(tcn);
 		tvs_quesset(NULL, tc, tcqf->qname);
 	}
+/*
 	ns_free(tcqf);
+*/
 	return NS_FALSE;
 }
 
@@ -74,15 +82,15 @@ TriviaChan *NewTChan(Channel *c)
 	hnode_t *tcn;
 	
 	tc = (TriviaChan *) GetChannelModValue (c);
-	if (tc) {
+	if (tc) 
+	{
 		nlog(LOG_WARNING, "Hrm, Chan %s already has a TriviaChanStruct with it", c->name);
 		return tc;
 	}
 	/* ok, first we lookup in the tch hash, to see if this is a channel that we already have a setting for */
 	tcn = hash_lookup(tch, c->name);
-	if (tcn) {
+	if (tcn)
 		return NULL;
-	}
 	/* ok, create and insert into hash */
 	tc = ns_calloc (sizeof(TriviaChan));
 	strlcpy (tc->name, c->name, MAXCHANLEN);
@@ -110,11 +118,11 @@ TriviaChan *NewTChan(Channel *c)
 */
 TriviaChan *OfflineTChan(Channel *c) {
 	TriviaChan *tc;
-	if (!c) {
+	if (!c)
 		return NULL;
-	}
 	tc = (TriviaChan *) GetChannelModValue (c);
-	if (tc == NULL) {
+	if (!tc) 
+	{
 		nlog(LOG_WARNING, "TriviaChan %s already marked offline?!!?!", c->name);
 		return NULL;
 	}
@@ -129,29 +137,30 @@ TriviaChan *OfflineTChan(Channel *c) {
 /*
  * First User Joined Channel
 */
-TriviaChan *OnlineTChan(Channel *c) {
+TriviaChan *OnlineTChan(Channel *c) 
+{
 	TriviaChan *tc;
 	hnode_t *tcn;
-	if (!c) {
+	if (!c)
 		return NULL;
-	}
 	tc = (TriviaChan *) GetChannelModValue (c);
-	if (tc) {
+	if (tc) 
+	{
 		nlog(LOG_WARNING, "TriviaChan %s already marked online?!?!", c->name);
 		return tc;
 	}
 	tcn = hash_lookup(tch, c->name);
-	if (tcn != NULL) {
+	if (tcn) 
+	{
 		tc = hnode_get(tcn);
 		tc->c = c;
 		tc->active = 0;
 		tc->curquest = NULL;
 		SetChannelModValue (c, tc);
-		if (tc->opchan) {
+		if (tc->opchan)
 			irc_join (tvs_bot, tc->name, "+o");
-		} else {
+		else
 			irc_join (tvs_bot, tc->name, NULL);
-		}
 		return tc;
 	}
 	return NULL;
@@ -160,12 +169,14 @@ TriviaChan *OnlineTChan(Channel *c) {
 /*
  * Remove Trivia Channel Entry
 */
-int DelTChan(char *chan) {
+int DelTChan(char *chan) 
+{
 	hnode_t *hnode;
 	TriviaChan *tc;
 	
 	hnode = hash_lookup(tch, chan);
-	if (hnode) {
+	if (hnode) 
+	{
 		tc = hnode_get(hnode);
 		/* part the channel if its online */
 		if ((TriviaChan *)GetChannelModValue (tc->c)) OfflineTChan(FindChannel (tc->name));
@@ -193,6 +204,7 @@ int SaveTChan (TriviaChan *tc)
 */
 int EmptyChan (CmdParams* cmdparams)
 {
+	SET_SEGV_LOCATION();
 	OfflineTChan(cmdparams->channel);
 	return NS_SUCCESS;
 }
@@ -202,6 +214,7 @@ int EmptyChan (CmdParams* cmdparams)
 */
 int NewChan(CmdParams* cmdparams) 
 {
+	SET_SEGV_LOCATION();
 	OnlineTChan(cmdparams->channel);
 	return NS_SUCCESS;
 }

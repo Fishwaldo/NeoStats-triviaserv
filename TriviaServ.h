@@ -40,6 +40,8 @@ struct TriviaServ {
 	int use_exc;
 	long Questions;
 	int defaultpoints;
+	int resettype;
+	int lastreset;
 } TriviaServ;
 
 typedef struct QuestionFiles {
@@ -116,6 +118,7 @@ extern const char *questpath;
 extern const char *tvs_about[];
 extern const char *tvs_help_set_exclusions[];
 extern const char *tvs_help_set_defaultpoints[];
+extern const char *tvs_help_set_resettype[];
 extern const char *tvs_help_chans[];
 extern const char *tvs_help_catlist[];
 extern const char *tvs_help_start[];
@@ -130,11 +133,11 @@ extern const char *tvs_help_hintchar[];
 
 /* TriviaUser.c */
 void tvs_addpoints(Client *u, TriviaChan *tc);
-TriviaChannelScore *GetUsersChannelScore (char *uname, char *cname);
+int GetUsersChannelScore (Client *u, TriviaChan *tc);
 int UmodeUser(CmdParams* cmdparams);
 int QuitNickUser(CmdParams* cmdparams);
 int KillUser(CmdParams* cmdparams);
-int UserLeaving(Client *u);
+void UserLeaving(Client *u);
 void SaveAllUserScores(void);
 
 /* TriviaCmds.c */
