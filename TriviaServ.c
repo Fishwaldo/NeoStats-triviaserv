@@ -532,15 +532,15 @@ int tvs_clearscoretimers(int cleartype) {
 				TriviaServ.lastreset = me.now;
 				break;
 			case 4:
-				if (TriviaServ.lastreset < (me.now - (86 * 86400)))
+				if (TriviaServ.lastreset < (me.now - (86 * TS_ONE_DAY)))
 					TriviaServ.lastreset = me.now;
 				break;
 			case 5:
-				if (TriviaServ.lastreset < (me.now - (177 * 86400)))
+				if (TriviaServ.lastreset < (me.now - (177 * TS_ONE_DAY)))
 					TriviaServ.lastreset = me.now;
 				break;
 			case 6:
-				if (TriviaServ.lastreset < (me.now - (363 * 86400)))
+				if (TriviaServ.lastreset < (me.now - (363 * TS_ONE_DAY)))
 					TriviaServ.lastreset = me.now;
 				break;
 		}
