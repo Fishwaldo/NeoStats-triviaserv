@@ -521,7 +521,7 @@ int tvs_clearscoretimers(int cleartype) {
 		}
 	}
 	/* clear Network scores if needed */
-	if (TriviaServ.resettype = cleartype) 
+	if (TriviaServ.resettype == cleartype) 
 	{
 		switch (cleartype) 
 		{
