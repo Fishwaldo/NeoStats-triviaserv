@@ -493,7 +493,7 @@ int tvs_clearscoretimers(int cleartype) {
 		if (tc) 
 		{
 			/* for each channel check if to be cleared */
-			if (tc->resettype = cleartype) 
+			if (tc->resettype == cleartype) 
 			{
 				switch (cleartype) 
 				{

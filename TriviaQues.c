@@ -380,7 +380,7 @@ void tvs_ansquest(TriviaChan *tc)
 			}
 		}
 	}
-	irc_chanprivmsg (tvs_bot, tc->name, "\003%d%sTimes Up! The Answer was: \003%d%s%s", tc->messagecolour, (tc->boldcase %2) ? "\002" : "", tc->hintcolour, (tc->boldcase %2) ? "" : "\002", qe->answer);
+	irc_chanprivmsg (tvs_bot, tc->name, "\003%d%sTimes Up! The Answer was:\003%d%s %s", tc->messagecolour, (tc->boldcase % 2) ? "\002" : "", tc->hintcolour, (tc->boldcase %2) ? "" : "\002", qe->answer);
 	/* so we don't chew up memory too much */
 	ns_free (qe->question);
 	ns_free (qe->answer);
