@@ -488,7 +488,7 @@ int tvs_chans(CmdParams* cmdparams)
 		irc_prefmsg (tvs_bot, cmdparams->source, "Trivia Channel:");
 		hash_scan_begin(&hs, tch);
 		i = 0;
-		while (hnode = hash_scan_next(&hs)) 
+		while ((hnode = hash_scan_next(&hs))) 
 		{
 			tc = hnode_get(hnode);
 			i++;

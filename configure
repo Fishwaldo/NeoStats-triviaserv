@@ -1279,7 +1279,7 @@ _ACEOF
 
 DIRINST=~/NeoStats3.0/
 
-CFLAGS="$CFLAGS -O2"
+CFLAGS="$CFLAGS -O2 -fno-strict-aliasing"
 
 case "$host_os" in
 *openbsd*)

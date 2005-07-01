@@ -156,7 +156,7 @@ int ModSynch (void)
 		return NS_FAILURE;
 	irc_chanalert (tvs_bot, "Successfully Started, %ld questions loaded", TriviaServ.Questions);
 	hash_scan_begin(&hs, tch);
-	while (hnodes = hash_scan_next(&hs)) 
+	while ((hnodes = hash_scan_next(&hs)) != NULL) 
 	{
 		tc = hnode_get(hnodes);
 		c = FindChannel (tc->name);
@@ -233,7 +233,7 @@ int ModFini( void )
 
 	SaveAllUserScores();
 	hash_scan_begin(&hs, tch);
-	while (hnodes = hash_scan_next(&hs)) 
+	while ((hnodes = hash_scan_next(&hs))) 
 	{
 		tc = hnode_get(hnodes);
 		if (tc->c) 
@@ -416,7 +416,7 @@ int tvs_processtimer(void)
 	if (!(rand() % 4)) 
 		srand((unsigned int)me.now);
 	hash_scan_begin(&hs, tch);
-	while (hnodes = hash_scan_next(&hs)) 
+	while ((hnodes = hash_scan_next(&hs))) 
 	{
 		tc = hnode_get(hnodes);
 		if ((tc->c) && (tc->active == 1)) 
@@ -487,7 +487,7 @@ int tvs_clearscoretimers(int cleartype) {
 	 */ 
 	/* clear channel scores if needed */
 	hash_scan_begin(&hs, tch);
-	while (hnodes = hash_scan_next(&hs)) 
+	while ((hnodes = hash_scan_next(&hs))) 
 	{
 		tc = hnode_get(hnodes);
 		if (tc) 
