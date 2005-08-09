@@ -44,10 +44,10 @@ void (*old_free) (void *);
 const char *questpath = "data/TSQuestions/";
 
 int tvs_get_settings();
-int tvs_processtimer (void);
-int tvs_dailytimer (void);
-int tvs_weeklytimer (void);
-int tvs_monthlytimer (void);
+int tvs_processtimer (void *);
+int tvs_dailytimer (void *);
+int tvs_weeklytimer (void *);
+int tvs_monthlytimer (void *);
 int tvs_clearscoretimers (int cleartype);
 
 Bot *tvs_bot;
@@ -164,11 +164,11 @@ int ModSynch (void)
 			OnlineTChan(c);
 	}
 	/* kick of the question/answer timer */
-	AddTimer (TIMER_TYPE_INTERVAL, tvs_processtimer, "tvs_processtimer", 10);
+	AddTimer (TIMER_TYPE_INTERVAL, tvs_processtimer, "tvs_processtimer", 10, NULL);
 	/* kick of the reset scores timers */
-	AddTimer (TIMER_TYPE_DAILY, tvs_dailytimer, "tvs_dailytimer", 0);
-	AddTimer (TIMER_TYPE_WEEKLY, tvs_weeklytimer, "tvs_weeklytimer", 0);
-	AddTimer (TIMER_TYPE_MONTHLY, tvs_monthlytimer, "tvs_monthlytimer", 0);
+	AddTimer (TIMER_TYPE_DAILY, tvs_dailytimer, "tvs_dailytimer", 0, NULL);
+	AddTimer (TIMER_TYPE_WEEKLY, tvs_weeklytimer, "tvs_weeklytimer", 0, NULL);
+	AddTimer (TIMER_TYPE_MONTHLY, tvs_monthlytimer, "tvs_monthlytimer", 0, NULL);
 	return NS_SUCCESS;
 }
 
@@ -404,7 +404,7 @@ int tvs_get_settings() {
 /*
  * Process Timer to kick off hints or new questions when required
 */
-int tvs_processtimer(void) 
+int tvs_processtimer(void *userptr) 
 {
 	TriviaChan *tc;
 	hscan_t hs;
@@ -450,19 +450,19 @@ int tvs_processtimer(void)
 /*
  * Process Timers to clear channel scores
 */
-int tvs_dailytimer(void) 
+int tvs_dailytimer(void *userptr) 
 {
 	SET_SEGV_LOCATION();
 	return tvs_clearscoretimers(1);
 }
 
-int tvs_weeklytimer(void) 
+int tvs_weeklytimer(void *userptr) 
 {
 	SET_SEGV_LOCATION();
 	return tvs_clearscoretimers(2);
 }
 
-int tvs_monthlytimer(void) 
+int tvs_monthlytimer(void *userptr) 
 {
 	int i;
 
