@@ -368,6 +368,10 @@ void tvs_ansquest(TriviaChan *tc)
 	
 	qe = tc->curquest;
 	/* modify answer character case if required before displaying */
+	if (!qe || !qe->answer) {
+		tc->curquest = NULL;
+		return;
+	}
 	for (i = 0 ; i < strlen(qe->answer) ; i++) 
 	{
 		if ((tc->boldcase > 1) && ((qe->answer[i] >= 'a' && qe->answer[i] <= 'z') || (qe->answer[i] >= 'A' && qe->answer[i] <= 'Z'))) 

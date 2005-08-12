@@ -39,7 +39,7 @@ install: module
 	 $(INSTALL) -m 644 $(TARGET) $(DIRECTORY)
 	 $(INSTALL) -m 644 $(DOCS) $(DIRECTORY)../doc/
 	 @mkdir $(DIRECTORY)../data/TSQuestions/
-	 $(INSTALL) -m 644 $(DATA) $(DIRECTORY)../data/TSQuestions/
+	 @$(INSTALL) -m 644 $(DATA) $(DIRECTORY)../data/TSQuestions/
 	@echo "Installation complete."
 	@echo "See the README file for instructions on loading this module."
 
