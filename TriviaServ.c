@@ -88,7 +88,7 @@ static bot_cmd tvs_commands[]=
 	{"RESETSCORES",	tvs_cmd_resetscores,	1, 	0,			tvs_help_resetscores,	CMD_FLAG_CHANONLY},
 	{"COLOUR",	tvs_cmd_colour,		2, 	0,			tvs_help_colour,	CMD_FLAG_CHANONLY},
 	{"HINTCHAR",	tvs_cmd_hintchar,	1, 	0,			tvs_help_hintchar,	CMD_FLAG_CHANONLY},
-	{NULL,		NULL,			0, 	0,			NULL}
+	NS_CMD_END()
 };
 
 static bot_setting tvs_settings[]=
@@ -96,7 +96,7 @@ static bot_setting tvs_settings[]=
 	{"EXCLUSIONS", 		&TriviaServ.use_exc,		SET_TYPE_BOOLEAN,	0,	0, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_exclusions,	NULL,	(void *) 0},
 	{"DEFAULTPOINTS", 	&TriviaServ.defaultpoints,	SET_TYPE_INT,		1,	25, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_defaultpoints,	NULL,	(void *) 1},
 	{"RESETTYPE",	 	&TriviaServ.resettype,		SET_TYPE_INT,		0,	6, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_resettype,		NULL,	(void *) 0},
-	{NULL,			NULL,				0,			0,	0,		0,			NULL,	NULL,				NULL,	NULL},
+	NS_SETTING_END()
 };
 
 /*
