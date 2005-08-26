@@ -291,7 +291,7 @@ int file_select (const struct direct *entry) {
 	if ((ircstrcasecmp(entry->d_name, ".")==0) || (ircstrcasecmp(entry->d_name, "..")==0)) 
 		return 0;
 	/* check filename extension */
-	ptr = rindex(entry->d_name, '.');
+	ptr = strrchr(entry->d_name, '.');
 	if ((ptr) && !(ircstrcasecmp(ptr, ".qns"))) {
 			return NS_SUCCESS;
 	}
