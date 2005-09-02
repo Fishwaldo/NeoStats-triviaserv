@@ -628,7 +628,7 @@ void obscure_question(TriviaChan *tc)
 {
 	char *out, *tmpcolour, *tmpunseen, *tmpstr;
 	Questions *qe;
-	int random, i;
+	int random, i, qlen, charcount=0, tucount, tccount;
 
 	if (tc->curquest == NULL) 
 	{
@@ -658,10 +658,14 @@ void obscure_question(TriviaChan *tc)
 		strlcat(tmpunseen, "0", BUFSIZE);
 	ircsnprintf(tmpstr, BUFSIZE, "%d", tc->background);
 	strlcat(tmpunseen, tmpstr, BUFSIZE);
-	/* obscure question using definded channel colours, and send to channel */
+	/* obscure question using defined channel colours, and send to channel */
 	out = ns_calloc (BUFSIZE+1);
+	tucount = (int)strlen(tmpunseen);
+	tccount = (int)strlen(tmpcolour);
 	strlcpy(out, tmpcolour, BUFSIZE);
-	for (i=0;i < (int)strlen(qe->question);i++) 
+	charcount += tccount;
+	qlen = (int)strlen(qe->question);
+	for (i=0;( i < qlen ) && ( charcount < (BUFSIZE-13) );i++) 
 	{
 		if (qe->question[i] == ' ') 
 		{
@@ -673,22 +677,24 @@ void obscure_question(TriviaChan *tc)
 			 * then random character, and question colour
 			 */
 			strlcat(out, tmpunseen, BUFSIZE);
-			out[strlen(out)] = random;
+			charcount += tucount;
+			out[charcount++] = random;
 			strlcat(out, tmpcolour, BUFSIZE);
+			charcount += tccount;
 		} else {
 			/* insert the char, changing case if required, its a word */
 			if (tc->boldcase > 1 && ((qe->question[i] >= 'a' && qe->question[i] <= 'z') || (qe->question[i] >= 'A' && qe->question[i] <= 'Z'))) 
 			{
 				if (tc->boldcase > 3 && qe->question[i] > 'Z') 
 				{
-					out[strlen(out)] = (qe->question[i] - ('a' - 'A'));
+					out[charcount++] = (qe->question[i] - ('a' - 'A'));
 				} else if (tc->boldcase > 1 && tc->boldcase < 4 && qe->question[i] < 'a') {
-					out[strlen(out)] = (qe->question[i] + ('a' - 'A'));
+					out[charcount++] = (qe->question[i] + ('a' - 'A'));
 				} else {
-					out[strlen(out)] = qe->question[i];
+					out[charcount++] = qe->question[i];
 				}
 			} else {
-				out[strlen(out)] = qe->question[i];
+				out[charcount++] = qe->question[i];
 			}
 		}
 	}
