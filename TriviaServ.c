@@ -181,7 +181,7 @@ ModuleEvent module_events[] = {
 	{EVENT_KILL, KillUser},
 	{EVENT_NICK, QuitNickUser},
 	{EVENT_UMODE, UmodeUser},
-	{EVENT_NULL, NULL}
+	NS_EVENT_END()
 };
 
 /** Init module
