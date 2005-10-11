@@ -203,9 +203,9 @@ int ModInit( void )
 		DBAStoreConfigInt("LastReset", TriviaServ.lastreset);
 	}
 	TriviaServ.Questions = 0;
-	qfl = list_create(-1);
-	userlist = list_create(-1);
-	tch = hash_create(-1, 0, 0);
+	qfl = list_create(LISTCOUNT_T_MAX);
+	userlist = list_create(LISTCOUNT_T_MAX);
+	tch = hash_create(HASHCOUNT_T_MAX, 0, 0);
 	if (tvs_get_settings() == NS_FAILURE) 
 		return NS_FAILURE;
 	tvs_parse_questions();
@@ -394,7 +394,7 @@ int tvs_get_settings() {
 #else
 		strlcpy(qf->filename, filelist[i-1], MAXPATH);
 #endif
-		qf->QE = list_create(-1);
+		qf->QE = list_create(LISTCOUNT_T_MAX);
 		lnode_create_append(qfl, qf);
 	}
 	DBAFetchRows ("Channel", LoadChannel);

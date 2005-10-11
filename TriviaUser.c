@@ -59,7 +59,7 @@ void tvs_addpoints(Client *u, TriviaChan *tc)
 		}
 		strlcpy(tu->lastusednick, u->name, MAXNICK);
 		tu->lastused = 0;
-		tu->tcsl = list_create(-1);
+		tu->tcsl = list_create(LISTCOUNT_T_MAX);
 		SetUserModValue (u, tu);
 		lnode_create_append(userlist, u);
 	}

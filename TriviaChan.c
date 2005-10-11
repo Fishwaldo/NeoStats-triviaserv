@@ -39,7 +39,7 @@ int LoadChannel( void *data, int size )
 
 	tc = ns_calloc (sizeof(TriviaChan));
 	os_memcpy (tc, data, sizeof(TriviaChan));
-	tc->qfl = list_create(-1);
+	tc->qfl = list_create(LISTCOUNT_T_MAX);
 	hnode_create_insert(tch, tc, tc->name);
 	dlog (DEBUG1, "Loaded TC entry for Channel %s", tc->name);
 	return NS_FALSE;
@@ -107,7 +107,7 @@ TriviaChan *NewTChan(Channel *c)
 	tc->messagecolour = 0;
 	tc->hintchar = '-';
 	SetChannelModValue (c, tc);
-	tc->qfl = list_create(-1);
+	tc->qfl = list_create(LISTCOUNT_T_MAX);
 	hnode_create_insert (tch, tc, tc->name);
 	dlog (DEBUG1, "Created New TC entry for Channel %s", c->name);
 	return tc;
