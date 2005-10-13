@@ -35,7 +35,7 @@
  *
  * ToDo : Everything
 */
-int tvs_cmd_score (CmdParams* cmdparams)
+int tvs_cmd_score (const CmdParams *cmdparams)
 {
 	TriviaChan *tc;
 
@@ -59,7 +59,7 @@ int tvs_cmd_score (CmdParams* cmdparams)
  *
  * ToDo : Everything
 */
-int tvs_cmd_hint (CmdParams* cmdparams)
+int tvs_cmd_hint (const CmdParams *cmdparams)
 {
 	TriviaChan *tc;
 
@@ -81,7 +81,7 @@ int tvs_cmd_hint (CmdParams* cmdparams)
 /*
  * Starts Trivia in channel
 */
-int tvs_cmd_start (CmdParams* cmdparams)
+int tvs_cmd_start (const CmdParams *cmdparams)
 {
 	TriviaChan *tc;
 
@@ -90,7 +90,7 @@ int tvs_cmd_start (CmdParams* cmdparams)
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc)
 		return NS_FAILURE;
-	if ((tc->publiccontrol == 0) && (!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN)) 
+	if ((tc->publiccontrol == 0) && (!IsChanOp(cmdparams->channel, cmdparams->source)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN)) 
 		return NS_FAILURE;
 	if (tc->active) 
 	{
@@ -107,7 +107,7 @@ int tvs_cmd_start (CmdParams* cmdparams)
 /*
  * Stops Trivia in channel
 */
-int tvs_cmd_stop (CmdParams* cmdparams)
+int tvs_cmd_stop (const CmdParams *cmdparams)
 {
 	TriviaChan *tc;
 
@@ -116,7 +116,7 @@ int tvs_cmd_stop (CmdParams* cmdparams)
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc)
 		return NS_FAILURE;
-	if ((tc->publiccontrol == 0) && (!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN)) 
+	if ((tc->publiccontrol == 0) && (!IsChanOp(cmdparams->channel, cmdparams->source)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN)) 
 		return NS_FAILURE;
 	if (!tc->active) 
 	{
@@ -135,7 +135,7 @@ int tvs_cmd_stop (CmdParams* cmdparams)
  * Checks access allowed to set Question Sets for channel
  * then calls tvs_questset to perform the action
 */
-int tvs_cmd_qs (CmdParams* cmdparams)
+int tvs_cmd_qs (const CmdParams *cmdparams)
 {
 	TriviaChan *tc;
 
@@ -144,7 +144,7 @@ int tvs_cmd_qs (CmdParams* cmdparams)
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc)
 		return NS_FAILURE;
-	if ((!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN))
+	if ((!IsChanOp(cmdparams->channel, cmdparams->source)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN))
 		return NS_FAILURE;
 	tvs_quesset(cmdparams, tc, NULL);
 	return NS_SUCCESS;
@@ -153,7 +153,7 @@ int tvs_cmd_qs (CmdParams* cmdparams)
 /*
  * Sets amount of points per question in channel
 */
-int tvs_cmd_sp (CmdParams* cmdparams)
+int tvs_cmd_sp (const CmdParams *cmdparams)
 {
 	int ps=0;
 	TriviaChan *tc;
@@ -163,7 +163,7 @@ int tvs_cmd_sp (CmdParams* cmdparams)
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc)
 		return NS_FAILURE;
-	if ((!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN))
+	if ((!IsChanOp(cmdparams->channel, cmdparams->source)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN))
 		return NS_FAILURE;
 	ps = atoi(cmdparams->av[0]);
 	if (ps < 1 || ps > 25) 
@@ -180,7 +180,7 @@ int tvs_cmd_sp (CmdParams* cmdparams)
 /*
  * Allows Chanops to turn Public Control on or off
 */
-int tvs_cmd_pc (CmdParams* cmdparams)
+int tvs_cmd_pc (const CmdParams *cmdparams)
 {
 	TriviaChan *tc;
 
@@ -189,7 +189,7 @@ int tvs_cmd_pc (CmdParams* cmdparams)
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc)
 		return NS_FAILURE;
-	if ((!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN))
+	if ((!IsChanOp(cmdparams->channel, cmdparams->source)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN))
 		return NS_FAILURE;
 	if (!ircstrcasecmp(cmdparams->av[0], "ON")) 
 	{
@@ -209,7 +209,7 @@ int tvs_cmd_pc (CmdParams* cmdparams)
 /*
  * Allows Chanops to set if Pseudo Client set Op on joining Channel or not
 */
-int tvs_cmd_opchan (CmdParams* cmdparams)
+int tvs_cmd_opchan (const CmdParams *cmdparams)
 {
 	TriviaChan *tc;
 
@@ -218,7 +218,7 @@ int tvs_cmd_opchan (CmdParams* cmdparams)
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc)
 		return NS_FAILURE;
-	if ((!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN))
+	if ((!IsChanOp(cmdparams->channel, cmdparams->source)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN))
 		return NS_FAILURE;
 	if (!ircstrcasecmp(cmdparams->av[0], "ON")) 
 	{
@@ -231,10 +231,10 @@ int tvs_cmd_opchan (CmdParams* cmdparams)
 	}
 	SaveTChan(tc);
 	/* check if setting changes and op/deop bot */
-	if (tc->opchan && !IsChanOp(cmdparams->channel->name, tvs_bot->u->name)) 
+	if (tc->opchan && !IsChanOp(cmdparams->channel, tvs_bot->u)) 
 	{
 		irc_chanusermode( tvs_bot, cmdparams->channel->name, "+o", tvs_bot->u->name);
-	} else if (!tc->opchan && IsChanOp(cmdparams->channel->name, tvs_bot->u->name)) {
+	} else if (!tc->opchan && IsChanOp(cmdparams->channel, tvs_bot->u)) {
 		irc_chanusermode( tvs_bot, cmdparams->channel->name, "-o", tvs_bot->u->name);
 	}
 	irc_prefmsg (tvs_bot, cmdparams->source, "OPCHAN for %s set to %s", tc->name , tc->opchan ? "On" : "Off");
@@ -244,7 +244,7 @@ int tvs_cmd_opchan (CmdParams* cmdparams)
 /*
  * Allows Chanops to configure Automatic Score Resetting
 */
-int tvs_cmd_resetscores (CmdParams* cmdparams) 
+int tvs_cmd_resetscores (const CmdParams *cmdparams) 
 {
 	TriviaChan *tc;
 	int resettype;
@@ -254,7 +254,7 @@ int tvs_cmd_resetscores (CmdParams* cmdparams)
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc)
 		return NS_FAILURE;
-	if ((!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN))
+	if ((!IsChanOp(cmdparams->channel, cmdparams->source)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN))
 		return NS_FAILURE;
 	resettype = atoi(cmdparams->av[0]);
 	if ( resettype < 0 || resettype > 6) 
@@ -294,7 +294,7 @@ int tvs_cmd_resetscores (CmdParams* cmdparams)
 /*
  * Allows Chanops to set colour/bold/underline for questions/hints/etc
 */
-int tvs_cmd_colour (CmdParams* cmdparams) 
+int tvs_cmd_colour (const CmdParams *cmdparams) 
 {
 	TriviaChan *tc;
 	int fg, bg, lc, i;
@@ -304,7 +304,7 @@ int tvs_cmd_colour (CmdParams* cmdparams)
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc)
 		return NS_FAILURE;
-	if ((!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN))
+	if ((!IsChanOp(cmdparams->channel, cmdparams->source)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN))
 		return NS_FAILURE;
 	lc = 0;
 	fg = atoi(cmdparams->av[0]);
@@ -370,7 +370,7 @@ int tvs_cmd_colour (CmdParams* cmdparams)
 /*
  * Allows Chanops to set hint character used for answers
 */
-int tvs_cmd_hintchar (CmdParams* cmdparams) 
+int tvs_cmd_hintchar (const CmdParams *cmdparams) 
 {
 	TriviaChan *tc;
 	Questions *qe;
@@ -381,7 +381,7 @@ int tvs_cmd_hintchar (CmdParams* cmdparams)
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
 	if (!tc)
 		return NS_FAILURE;
-	if ((!IsChanOp(cmdparams->channel->name, cmdparams->source->name)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN))
+	if ((!IsChanOp(cmdparams->channel, cmdparams->source)) && (cmdparams->source->user->ulevel < NS_ULEVEL_ADMIN))
 		return NS_FAILURE;
 	if (strlen(cmdparams->av[0]) > 1) 
 	{
@@ -408,7 +408,7 @@ int tvs_cmd_hintchar (CmdParams* cmdparams)
 /*
  * Lists all Question Sets / Categories available on the network
 */
-int tvs_catlist(CmdParams* cmdparams) 
+int tvs_catlist(const CmdParams *cmdparams) 
 {
 	lnode_t *lnode;
 	QuestionFiles *qf;
@@ -429,7 +429,7 @@ int tvs_catlist(CmdParams* cmdparams)
 /*
  * Add/Remove/List Trivia Chans
 */
-int tvs_chans(CmdParams* cmdparams) 
+int tvs_chans(const CmdParams *cmdparams) 
 {
 	hscan_t hs;
 	hnode_t *hnode;

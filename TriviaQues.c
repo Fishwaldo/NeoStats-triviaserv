@@ -110,7 +110,7 @@ int find_cat_name(const void *catnode, const void *name)
  * Adds/Removes/Lists or resets to default
  * Category Entries/Question Sets for a channel
 */
-void tvs_quesset(CmdParams* cmdparams, TriviaChan *tc, char *qsn) 
+void tvs_quesset(const CmdParams *cmdparams, TriviaChan *tc, char *qsn) 
 {
 	lnode_t *lnode;
 	QuestionFiles *qf;

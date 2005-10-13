@@ -202,7 +202,7 @@ int SaveTChan (TriviaChan *tc)
 /*
  * Channel Emptied
 */
-int EmptyChan (CmdParams* cmdparams)
+int EmptyChan (const CmdParams *cmdparams)
 {
 	SET_SEGV_LOCATION();
 	OfflineTChan(cmdparams->channel);
@@ -212,7 +212,7 @@ int EmptyChan (CmdParams* cmdparams)
 /*
  * Channel Created
 */
-int NewChan(CmdParams* cmdparams) 
+int NewChan(const CmdParams *cmdparams) 
 {
 	SET_SEGV_LOCATION();
 	OnlineTChan(cmdparams->channel);

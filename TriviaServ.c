@@ -102,7 +102,7 @@ static bot_setting tvs_settings[]=
 /*
  * Channel message processing
 */
-int ChanPrivmsg (CmdParams* cmdparams)
+int ChanPrivmsg (const CmdParams *cmdparams)
 {
 	TriviaChan *tc;
 	char *tmpbuf;

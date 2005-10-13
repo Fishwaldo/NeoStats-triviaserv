@@ -125,7 +125,7 @@ int GetUsersChannelScore (Client *u, TriviaChan *tc) {
  * find channel scores attached to user, and add
  * saved scores for the registered nick if any.
 */
-int UmodeUser (CmdParams* cmdparams) {
+int UmodeUser (const CmdParams *cmdparams) {
 	TriviaUser *tu;
 	TriviaChannelScore *ts;
 	lnode_t *ln;
@@ -159,7 +159,7 @@ int UmodeUser (CmdParams* cmdparams) {
  * to save users scores and free
  * module data attached to the user.
 */
-int QuitNickUser (CmdParams* cmdparams) 
+int QuitNickUser (const CmdParams *cmdparams) 
 {
 	TriviaUser *tu;
 
@@ -170,7 +170,7 @@ int QuitNickUser (CmdParams* cmdparams)
 	return NS_SUCCESS;
 }
 
-int KillUser (CmdParams* cmdparams) 
+int KillUser (const CmdParams *cmdparams) 
 {
 	TriviaUser *tu;
 

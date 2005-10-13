@@ -134,26 +134,26 @@ extern const char *tvs_help_hintchar[];
 /* TriviaUser.c */
 void tvs_addpoints(Client *u, TriviaChan *tc);
 int GetUsersChannelScore (Client *u, TriviaChan *tc);
-int UmodeUser(CmdParams* cmdparams);
-int QuitNickUser(CmdParams* cmdparams);
-int KillUser(CmdParams* cmdparams);
+int UmodeUser(const CmdParams *cmdparams);
+int QuitNickUser(const CmdParams *cmdparams);
+int KillUser(const CmdParams *cmdparams);
 void UserLeaving(Client *u);
 void SaveAllUserScores(void);
 
 /* TriviaCmds.c */
-int tvs_cmd_score (CmdParams* cmdparams);
-int tvs_cmd_hint (CmdParams* cmdparams);
-int tvs_cmd_start (CmdParams* cmdparams);
-int tvs_cmd_stop (CmdParams* cmdparams);
-int tvs_cmd_qs (CmdParams* cmdparams);
-int tvs_cmd_sp (CmdParams* cmdparams);
-int tvs_cmd_pc (CmdParams* cmdparams);
-int tvs_cmd_opchan (CmdParams* cmdparams);
-int tvs_cmd_resetscores (CmdParams* cmdparams);
-int tvs_cmd_colour (CmdParams* cmdparams);
-int tvs_cmd_hintchar (CmdParams* cmdparams);
-int tvs_catlist(CmdParams* cmdparams);
-int tvs_chans(CmdParams* cmdparams);
+int tvs_cmd_score (const CmdParams *cmdparams);
+int tvs_cmd_hint (const CmdParams *cmdparams);
+int tvs_cmd_start (const CmdParams *cmdparams);
+int tvs_cmd_stop (const CmdParams *cmdparams);
+int tvs_cmd_qs (const CmdParams *cmdparams);
+int tvs_cmd_sp (const CmdParams *cmdparams);
+int tvs_cmd_pc (const CmdParams *cmdparams);
+int tvs_cmd_opchan (const CmdParams *cmdparams);
+int tvs_cmd_resetscores (const CmdParams *cmdparams);
+int tvs_cmd_colour (const CmdParams *cmdparams);
+int tvs_cmd_hintchar (const CmdParams *cmdparams);
+int tvs_catlist(const CmdParams *cmdparams);
+int tvs_chans(const CmdParams *cmdparams);
 
 /* TriviaChan.c */
 int LoadChannel( void *data, int size );
@@ -163,13 +163,13 @@ TriviaChan *OfflineTChan(Channel *c);
 TriviaChan *OnlineTChan(Channel *c);
 int DelTChan(char *chan);
 int SaveTChan (TriviaChan *tc);
-int EmptyChan (CmdParams* cmdparams);
-int NewChan(CmdParams* cmdparams);
+int EmptyChan (const CmdParams *cmdparams);
+int NewChan(const CmdParams *cmdparams);
 
 /* TriviaQues.c */
 void tvs_parse_questions();
 int find_cat_name(const void *catnode, const void *name);
-void tvs_quesset(CmdParams* cmdparams, TriviaChan *tc, char *qsn);
+void tvs_quesset(const CmdParams *cmdparams, TriviaChan *tc, char *qsn);
 QuestionFiles *tvs_randomquestfile(TriviaChan *tc);
 void tvs_newquest(TriviaChan *tc);
 void tvs_ansquest(TriviaChan *tc);
