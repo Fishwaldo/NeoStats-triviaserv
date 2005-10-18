@@ -179,12 +179,14 @@ int DelTChan(char *chan)
 	{
 		tc = hnode_get(hnode);
 		/* part the channel if its online */
-		if ((TriviaChan *)GetChannelModValue (tc->c)) OfflineTChan(FindChannel (tc->name));
+		if (GetChannelModValue (tc->c)) 
+			OfflineTChan(FindChannel (tc->name));
 		hash_delete(tch, hnode);
 		list_destroy_nodes(tc->qfl);
 		ns_free (tc);
 		hnode_destroy(hnode);
 		DBADelete("Channel", chan);
+		ClearChannelModValue (tc->c);
 		return NS_SUCCESS;
 	}
 	return NS_FAILURE;

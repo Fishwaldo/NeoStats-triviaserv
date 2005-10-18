@@ -29,7 +29,7 @@
 #define TVSREXEXP "^(.*)\\*(.*)$"
 #define QUESTSIZE 500
 #define ANSSIZE 200
-#define REGSIZE ANSSIZE + 20
+#define REGSIZE ( ANSSIZE + 20 )
 
 extern Bot *tvs_bot;
 
