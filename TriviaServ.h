@@ -33,7 +33,7 @@
 
 extern Bot *tvs_bot;
 
-struct TriviaServ {
+typedef struct TriviaServCfg {
 	char user[MAXUSER]; 
 	char host[MAXHOST]; 
 	char realname[MAXREALNAME]; 
@@ -43,7 +43,9 @@ struct TriviaServ {
 	int defaultpoints;
 	int resettype;
 	time_t lastreset;
-} TriviaServ;
+} TriviaServCfg;
+
+extern TriviaServCfg TriviaServ;
 
 typedef struct QuestionFiles {
 	FILE *fn;

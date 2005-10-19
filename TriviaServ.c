@@ -50,6 +50,7 @@ int tvs_weeklytimer (void *);
 int tvs_monthlytimer (void *);
 
 Bot *tvs_bot;
+TriviaServCfg TriviaServ;
 
 /** Copyright info */
 const char *ts_copyright[] = {
