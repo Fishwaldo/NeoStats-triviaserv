@@ -40,7 +40,7 @@ void tvs_addpoints(Client *u, TriviaChan *tc)
 	Questions *qe;
 	lnode_t *ln;
 	
-	if (!u | !tc->curquest) 
+	if (!u || !tc->curquest) 
 	{
 		nlog(LOG_WARNING, "Can't find user for AddPoints?!");
 		return;
