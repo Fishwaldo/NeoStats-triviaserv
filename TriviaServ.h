@@ -37,6 +37,7 @@ struct TriviaServ {
 	char user[MAXUSER]; 
 	char host[MAXHOST]; 
 	char realname[MAXREALNAME]; 
+	int verbose;
 	int use_exc;
 	long Questions;
 	int defaultpoints;
@@ -116,6 +117,7 @@ extern const char *questpath;
 
 /* TriviaServ_help.c */
 extern const char *tvs_about[];
+extern const char *tvs_help_set_verbose[];
 extern const char *tvs_help_set_exclusions[];
 extern const char *tvs_help_set_defaultpoints[];
 extern const char *tvs_help_set_resettype[];

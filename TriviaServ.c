@@ -93,6 +93,7 @@ static bot_cmd tvs_commands[]=
 
 static bot_setting tvs_settings[]=
 {
+	{"VERBOSE", 		&TriviaServ.verbose,		SET_TYPE_BOOLEAN,	0,	0, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_verbose,	NULL,	(void *) 1},
 	{"EXCLUSIONS", 		&TriviaServ.use_exc,		SET_TYPE_BOOLEAN,	0,	0, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_exclusions,	NULL,	(void *) 0},
 	{"DEFAULTPOINTS", 	&TriviaServ.defaultpoints,	SET_TYPE_INT,		1,	25, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_defaultpoints,	NULL,	(void *) 1},
 	{"RESETTYPE",	 	&TriviaServ.resettype,		SET_TYPE_INT,		0,	6, 		NS_ULEVEL_ADMIN,	NULL,	tvs_help_set_resettype,		NULL,	(void *) 0},
@@ -154,7 +155,8 @@ int ModSynch (void)
 	tvs_bot = AddBot (&tvs_botinfo);
 	if (!tvs_bot)
 		return NS_FAILURE;
-	irc_chanalert (tvs_bot, "Successfully Started, %ld questions loaded", TriviaServ.Questions);
+	if( TriviaServ.verbose )
+		irc_chanalert (tvs_bot, "Successfully Started, %ld questions loaded", TriviaServ.Questions);
 	hash_scan_begin(&hs, tch);
 	while ((hnodes = hash_scan_next(&hs)) != NULL) 
 	{

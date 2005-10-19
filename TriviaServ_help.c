@@ -27,6 +27,12 @@ const char *tvs_about[] = {
 	"NeoStats Trivia Game Service",
 	NULL
 };
+
+const char *tvs_help_set_verbose[] = {
+	"\2VERBOSE <ON|OFF>\2",
+	"Control message reporting",
+	NULL
+};
 const char *tvs_help_set_exclusions[] = {
 	"\2EXCLUSIONS <ON|OFF>\2",
 	"use global exclusion list",
