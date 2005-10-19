@@ -71,23 +71,24 @@ ModuleInfo module_info = {
 	__TIME__,
 	0,
 	0,
+	0,
 };
 
 static bot_cmd tvs_commands[]=
 {
-	{"CHANS",	tvs_chans,		1,	NS_ULEVEL_ADMIN,	tvs_help_chans},
-	{"CATLIST",	tvs_catlist,		0, 	0,			tvs_help_catlist},
-	{"SCORE",	tvs_cmd_score,		0, 	0,			NULL},
-	{"HINT",	tvs_cmd_hint,		0, 	0,			NULL},
-	{"START",	tvs_cmd_start,		0, 	0,			tvs_help_start,		CMD_FLAG_CHANONLY},
-	{"STOP",	tvs_cmd_stop,		0, 	0,			tvs_help_stop,		CMD_FLAG_CHANONLY},
-	{"QS",		tvs_cmd_qs,		1, 	0,			tvs_help_qs,		CMD_FLAG_CHANONLY},
-	{"SETPOINTS",	tvs_cmd_sp,		1, 	0,			tvs_help_sp,		CMD_FLAG_CHANONLY},
-	{"PUBLIC",	tvs_cmd_pc,		1, 	0,			tvs_help_pc,		CMD_FLAG_CHANONLY},
-	{"OPCHAN",	tvs_cmd_opchan,		1, 	0,			tvs_help_opchan,	CMD_FLAG_CHANONLY},
-	{"RESETSCORES",	tvs_cmd_resetscores,	1, 	0,			tvs_help_resetscores,	CMD_FLAG_CHANONLY},
-	{"COLOUR",	tvs_cmd_colour,		2, 	0,			tvs_help_colour,	CMD_FLAG_CHANONLY},
-	{"HINTCHAR",	tvs_cmd_hintchar,	1, 	0,			tvs_help_hintchar,	CMD_FLAG_CHANONLY},
+	{"CHANS",	tvs_chans,		1,	NS_ULEVEL_ADMIN,	tvs_help_chans, 0, NULL, NULL},
+	{"CATLIST",	tvs_catlist,		0, 	0,			tvs_help_catlist, 0, NULL, NULL},
+	{"SCORE",	tvs_cmd_score,		0, 	0,			NULL, 0, NULL, NULL},
+	{"HINT",	tvs_cmd_hint,		0, 	0,			NULL, 0, NULL, NULL},
+	{"START",	tvs_cmd_start,		0, 	0,			tvs_help_start,		CMD_FLAG_CHANONLY, NULL, NULL},
+	{"STOP",	tvs_cmd_stop,		0, 	0,			tvs_help_stop,		CMD_FLAG_CHANONLY, NULL, NULL},
+	{"QS",		tvs_cmd_qs,		1, 	0,			tvs_help_qs,		CMD_FLAG_CHANONLY, NULL, NULL},
+	{"SETPOINTS",	tvs_cmd_sp,		1, 	0,			tvs_help_sp,		CMD_FLAG_CHANONLY, NULL, NULL},
+	{"PUBLIC",	tvs_cmd_pc,		1, 	0,			tvs_help_pc,		CMD_FLAG_CHANONLY, NULL, NULL},
+	{"OPCHAN",	tvs_cmd_opchan,		1, 	0,			tvs_help_opchan,	CMD_FLAG_CHANONLY, NULL, NULL},
+	{"RESETSCORES",	tvs_cmd_resetscores,	1, 	0,			tvs_help_resetscores,	CMD_FLAG_CHANONLY, NULL, NULL},
+	{"COLOUR",	tvs_cmd_colour,		2, 	0,			tvs_help_colour,	CMD_FLAG_CHANONLY, NULL, NULL},
+	{"HINTCHAR",	tvs_cmd_hintchar,	1, 	0,			tvs_help_hintchar,	CMD_FLAG_CHANONLY, NULL, NULL},
 	NS_CMD_END()
 };
 
@@ -107,7 +108,7 @@ int ChanPrivmsg (const CmdParams *cmdparams)
 {
 	TriviaChan *tc;
 	char *tmpbuf;
-	int len;
+	unsigned int len;
 	
 	/* find if its our channel. */
 	tc = (TriviaChan *)GetChannelModValue (cmdparams->channel);
@@ -176,13 +177,13 @@ int ModSynch (void)
 
 /** Module Events */
 ModuleEvent module_events[] = {
-	{EVENT_CPRIVATE, ChanPrivmsg},		
-	{EVENT_EMPTYCHAN, EmptyChan},
-	{EVENT_NEWCHAN, NewChan},
-	{EVENT_QUIT, QuitNickUser},
-	{EVENT_KILL, KillUser},
-	{EVENT_NICK, QuitNickUser},
-	{EVENT_UMODE, UmodeUser},
+	{EVENT_CPRIVATE, ChanPrivmsg, 0},
+	{EVENT_EMPTYCHAN, EmptyChan, 0},
+	{EVENT_NEWCHAN, NewChan, 0},
+	{EVENT_QUIT, QuitNickUser, 0},
+	{EVENT_KILL, KillUser, 0},
+	{EVENT_NICK, QuitNickUser, 0},
+	{EVENT_UMODE, UmodeUser, 0},
 	NS_EVENT_END()
 };
 
@@ -401,7 +402,7 @@ int tvs_get_settings() {
 	}
 	DBAFetchRows ("Channel", LoadChannel);
 	return NS_SUCCESS;
-};
+}
 
 /*
  * Process Timer to kick off hints or new questions when required
@@ -440,7 +441,7 @@ int tvs_processtimer(void *userptr)
 			/* hint processor */
 			if ((tc->questtime - timediff) < 15) 
 			{
-				irc_chanprivmsg (tvs_bot, tc->name, "\003%d%sLess than %ld Seconds Remaining, Hurry up!", tc->messagecolour, (tc->boldcase %2) ? "\002" : "", (long)(tc->questtime - timediff + 10));
+				irc_chanprivmsg (tvs_bot, tc->name, "\003%d%sLess than %ld Seconds Remaining, Hurry up!", tc->messagecolour, (tc->boldcase %2) ? "\002" : "", (long)( ( tc->questtime - timediff ) + 10));
 				continue;
 			}
 			do_hint(tc);
