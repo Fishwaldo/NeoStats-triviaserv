@@ -51,6 +51,9 @@ int tvs_monthlytimer (void *);
 
 Bot *tvs_bot;
 TriviaServCfg TriviaServ;
+list_t *qfl;
+list_t *userlist;
+hash_t *tch;
 
 /** Copyright info */
 const char *ts_copyright[] = {

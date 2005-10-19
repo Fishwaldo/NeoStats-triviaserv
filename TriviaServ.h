@@ -111,10 +111,9 @@ typedef struct TriviaUser {
 	list_t *tcsl;
 } TriviaUser;
 
-list_t *qfl;
-list_t *userlist;
-hash_t *tch;
-
+extern list_t *qfl;
+extern list_t *userlist;
+extern hash_t *tch;
 extern const char *questpath;
 
 /* TriviaServ_help.c */
