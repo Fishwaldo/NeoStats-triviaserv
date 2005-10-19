@@ -43,7 +43,7 @@ void (*old_free) (void *);
 
 const char *questpath = "data/TSQuestions/";
 
-int tvs_get_settings();
+int tvs_get_settings(void);
 int tvs_processtimer (void *);
 int tvs_dailytimer (void *);
 int tvs_weeklytimer (void *);
@@ -518,6 +518,8 @@ int tvs_clearscoretimers(int cleartype) {
 						if (tc->lastreset < (me.now - (363 * TS_ONE_DAY))) 
 							tc->lastreset = me.now;
 						break;
+					default:
+						break;
 				}
 				SaveTChan(tc);
 			}
@@ -545,6 +547,8 @@ int tvs_clearscoretimers(int cleartype) {
 			case 6:
 				if (TriviaServ.lastreset < (me.now - (363 * TS_ONE_DAY)))
 					TriviaServ.lastreset = me.now;
+				break;
+			default:
 				break;
 		}
 		DBAStoreConfigInt("LastReset", TriviaServ.lastreset);

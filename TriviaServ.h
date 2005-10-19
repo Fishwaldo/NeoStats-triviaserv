@@ -169,7 +169,7 @@ int EmptyChan (const CmdParams *cmdparams);
 int NewChan(const CmdParams *cmdparams);
 
 /* TriviaQues.c */
-void tvs_parse_questions();
+void tvs_parse_questions(void);
 int find_cat_name(const void *catnode, const void *name);
 void tvs_quesset(const CmdParams *cmdparams, TriviaChan *tc, char *qsn);
 QuestionFiles *tvs_randomquestfile(TriviaChan *tc);
