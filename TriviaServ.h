@@ -34,9 +34,6 @@
 extern Bot *tvs_bot;
 
 typedef struct TriviaServCfg {
-	char user[MAXUSER]; 
-	char host[MAXHOST]; 
-	char realname[MAXREALNAME]; 
 	int verbose;
 	int use_exc;
 	long Questions;
