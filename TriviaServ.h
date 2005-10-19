@@ -42,7 +42,7 @@ struct TriviaServ {
 	long Questions;
 	int defaultpoints;
 	int resettype;
-	int lastreset;
+	time_t lastreset;
 } TriviaServ;
 
 typedef struct QuestionFiles {
@@ -75,7 +75,7 @@ typedef struct TriviaChan {
 	long questtime;
 	int opchan;
 	int resettype;
-	int lastreset;
+	time_t lastreset;
 	int foreground;
 	int background;
 	int boldcase;
@@ -98,14 +98,14 @@ typedef struct TriviaChannelScore {
 	char cname[MAXCHANLEN];
 	char uname[MAXNICK];
 	int score;
-	int lastused;
+	time_t lastused;
 } TriviaChannelScore;
 
 typedef struct TriviaUser {
 	char lastusednick[MAXNICK];
 	int lastusedreg;
 	int networkscore;
-	int lastused;
+	time_t lastused;
 	list_t *tcsl;
 } TriviaUser;
 
