@@ -43,12 +43,6 @@ static void (*old_free) (void *);
 
 const char *questpath = "data/TSQuestions/";
 
-static int tvs_get_settings(void);
-static int tvs_processtimer (void *);
-static int tvs_dailytimer (void *);
-static int tvs_weeklytimer (void *);
-static int tvs_monthlytimer (void *);
-
 Bot *tvs_bot;
 TriviaServCfg TriviaServ;
 list_t *qfl;
@@ -104,6 +98,20 @@ static bot_setting tvs_settings[]=
 	NS_SETTING_END()
 };
 
+static int ChanPrivmsg (const CmdParams *cmdparams);
+
+/** Module Events */
+ModuleEvent module_events[] = {
+	{EVENT_CPRIVATE, ChanPrivmsg, 0},
+	{EVENT_EMPTYCHAN, EmptyChan, 0},
+	{EVENT_NEWCHAN, NewChan, 0},
+	{EVENT_QUIT, QuitNickUser, 0},
+	{EVENT_KILL, KillUser, 0},
+	{EVENT_NICK, QuitNickUser, 0},
+	{EVENT_UMODE, UmodeUser, 0},
+	NS_EVENT_END()
+};
+
 /*
  * Channel message processing
 */
@@ -138,153 +146,6 @@ static BotInfo tvs_botinfo =
 	tvs_commands, 
 	tvs_settings,
 };
-
-/** @brief ModSynch
- *
- *  Startup handler
- *
- *  @param none
- *
- *  @return NS_SUCCESS if suceeds else NS_FAILURE
- */
-
-int ModSynch (void)
-{
-	hscan_t hs;
-	hnode_t *hnodes;
-	TriviaChan *tc;
-	Channel *c;
-	
-	/* Introduce a bot onto the network */
-	tvs_bot = AddBot (&tvs_botinfo);
-	if (!tvs_bot)
-		return NS_FAILURE;
-	if( TriviaServ.verbose )
-		irc_chanalert (tvs_bot, "Successfully Started, %ld questions loaded", TriviaServ.Questions);
-	hash_scan_begin(&hs, tch);
-	while ((hnodes = hash_scan_next(&hs)) != NULL) 
-	{
-		tc = hnode_get(hnodes);
-		c = FindChannel (tc->name);
-		if (c)
-			OnlineTChan(c);
-	}
-	/* kick of the question/answer timer */
-	AddTimer (TIMER_TYPE_INTERVAL, tvs_processtimer, "tvs_processtimer", 10, NULL);
-	/* kick of the reset scores timers */
-	AddTimer (TIMER_TYPE_DAILY, tvs_dailytimer, "tvs_dailytimer", 0, NULL);
-	AddTimer (TIMER_TYPE_WEEKLY, tvs_weeklytimer, "tvs_weeklytimer", 0, NULL);
-	AddTimer (TIMER_TYPE_MONTHLY, tvs_monthlytimer, "tvs_monthlytimer", 0, NULL);
-	return NS_SUCCESS;
-}
-
-/** Module Events */
-ModuleEvent module_events[] = {
-	{EVENT_CPRIVATE, ChanPrivmsg, 0},
-	{EVENT_EMPTYCHAN, EmptyChan, 0},
-	{EVENT_NEWCHAN, NewChan, 0},
-	{EVENT_QUIT, QuitNickUser, 0},
-	{EVENT_KILL, KillUser, 0},
-	{EVENT_NICK, QuitNickUser, 0},
-	{EVENT_UMODE, UmodeUser, 0},
-	NS_EVENT_END()
-};
-
-/** Init module
- *  Required if you need to do initialisation of your module when
- *  first loaded
- */
-int ModInit( void )
-{
-#ifdef WIN32
-	old_malloc = pcre_malloc;
-	old_free = pcre_free;
-	pcre_malloc = os_malloc;
-	pcre_free = os_free;
-#endif
-	ModuleConfig (tvs_settings);
-	if (DBAFetchConfigInt("LastReset", TriviaServ.lastreset) != NS_SUCCESS)
-	{
-		TriviaServ.lastreset = 0;
-		DBAStoreConfigInt("LastReset", TriviaServ.lastreset);
-	}
-	TriviaServ.Questions = 0;
-	qfl = list_create(LISTCOUNT_T_MAX);
-	userlist = list_create(LISTCOUNT_T_MAX);
-	tch = hash_create(HASHCOUNT_T_MAX, 0, 0);
-	if (tvs_get_settings() == NS_FAILURE) 
-		return NS_FAILURE;
-	tvs_parse_questions();
-	/*
-	 * read the Channel Question Sets AFTER
-	 * parsing the question files, so the name
-	 * exists when adding to TriviaChan
-	*/
-	DBAFetchRows ("CQSets", LoadCQSets);
-	return NS_SUCCESS;
-}
-
-/** Init module
- *  Required if you need to do cleanup of your module when it ends
- */
-int ModFini( void )
-{
-	lnode_t *lnodes, *ln2, *ln3, *ln4;
-	hnode_t *hnodes;
-	QuestionFiles *qf;
-	Questions *qe;
-	hscan_t hs;
-	TriviaChan *tc;
-	Channel *c;
-
-	SaveAllUserScores();
-	hash_scan_begin(&hs, tch);
-	while ((hnodes = hash_scan_next(&hs))) 
-	{
-		tc = hnode_get(hnodes);
-		if (tc->c) 
-		{
-			c = tc->c;
-			ClearChannelModValue (c);
-		}
-		list_destroy_nodes(tc->qfl);
-		hash_scan_delete(tch, hnodes);
-		hnode_destroy(hnodes);
-		ns_free (tc);
-	}
-	lnodes = list_first(qfl);
-	while (lnodes) {
-		qf = lnode_get(lnodes);
-		if (qf->fn)
-			os_fclose (qf->fn);
-		ln3 = list_first(qf->QE);
-		while (ln3) 
-		{
-			qe = lnode_get(ln3);
-			if (qe->question) 
-			{
-				ns_free (qe->question);
-				ns_free (qe->answer);
-				ns_free (qe->lasthint);
-			}
-			list_delete(qf->QE, ln3);
-			ln4 = list_next(qf->QE, ln3);
-			lnode_destroy(ln3);
-			ns_free (qe);
-			ln3 = ln4;
-		}
-		list_delete(qfl, lnodes);
-		ln2 = list_next(qfl, lnodes);
-		lnode_destroy(lnodes);	
-		ns_free (qf);
-		lnodes = ln2;
-	}
-#ifdef WIN32
-	pcre_malloc = old_malloc;
-	pcre_free = old_free;
-#endif
-	return NS_SUCCESS;
-}
 
 /*
  * Find Question files
@@ -562,3 +423,137 @@ static int tvs_monthlytimer(void *userptr)
 	return NS_SUCCESS;
 }
 
+/** Init module
+ *  Required if you need to do initialisation of your module when
+ *  first loaded
+ */
+int ModInit( void )
+{
+#ifdef WIN32
+	old_malloc = pcre_malloc;
+	old_free = pcre_free;
+	pcre_malloc = os_malloc;
+	pcre_free = os_free;
+#endif
+	ModuleConfig (tvs_settings);
+	if (DBAFetchConfigInt("LastReset", TriviaServ.lastreset) != NS_SUCCESS)
+	{
+		TriviaServ.lastreset = 0;
+		DBAStoreConfigInt("LastReset", TriviaServ.lastreset);
+	}
+	TriviaServ.Questions = 0;
+	qfl = list_create(LISTCOUNT_T_MAX);
+	userlist = list_create(LISTCOUNT_T_MAX);
+	tch = hash_create(HASHCOUNT_T_MAX, 0, 0);
+	if (tvs_get_settings() == NS_FAILURE) 
+		return NS_FAILURE;
+	tvs_parse_questions();
+	/*
+	 * read the Channel Question Sets AFTER
+	 * parsing the question files, so the name
+	 * exists when adding to TriviaChan
+	*/
+	DBAFetchRows ("CQSets", LoadCQSets);
+	return NS_SUCCESS;
+}
+
+/** @brief ModSynch
+ *
+ *  Startup handler
+ *
+ *  @param none
+ *
+ *  @return NS_SUCCESS if suceeds else NS_FAILURE
+ */
+
+int ModSynch (void)
+{
+	hscan_t hs;
+	hnode_t *hnodes;
+	TriviaChan *tc;
+	Channel *c;
+	
+	/* Introduce a bot onto the network */
+	tvs_bot = AddBot (&tvs_botinfo);
+	if (!tvs_bot)
+		return NS_FAILURE;
+	if( TriviaServ.verbose )
+		irc_chanalert (tvs_bot, "Successfully Started, %ld questions loaded", TriviaServ.Questions);
+	hash_scan_begin(&hs, tch);
+	while ((hnodes = hash_scan_next(&hs)) != NULL) 
+	{
+		tc = hnode_get(hnodes);
+		c = FindChannel (tc->name);
+		if (c)
+			OnlineTChan(c);
+	}
+	/* kick of the question/answer timer */
+	AddTimer (TIMER_TYPE_INTERVAL, tvs_processtimer, "tvs_processtimer", 10, NULL);
+	/* kick of the reset scores timers */
+	AddTimer (TIMER_TYPE_DAILY, tvs_dailytimer, "tvs_dailytimer", 0, NULL);
+	AddTimer (TIMER_TYPE_WEEKLY, tvs_weeklytimer, "tvs_weeklytimer", 0, NULL);
+	AddTimer (TIMER_TYPE_MONTHLY, tvs_monthlytimer, "tvs_monthlytimer", 0, NULL);
+	return NS_SUCCESS;
+}
+
+/** Init module
+ *  Required if you need to do cleanup of your module when it ends
+ */
+int ModFini( void )
+{
+	lnode_t *lnodes, *ln2, *ln3, *ln4;
+	hnode_t *hnodes;
+	QuestionFiles *qf;
+	Questions *qe;
+	hscan_t hs;
+	TriviaChan *tc;
+	Channel *c;
+
+	SaveAllUserScores();
+	hash_scan_begin(&hs, tch);
+	while ((hnodes = hash_scan_next(&hs))) 
+	{
+		tc = hnode_get(hnodes);
+		if (tc->c) 
+		{
+			c = tc->c;
+			ClearChannelModValue (c);
+		}
+		list_destroy_nodes(tc->qfl);
+		hash_scan_delete(tch, hnodes);
+		hnode_destroy(hnodes);
+		ns_free (tc);
+	}
+	lnodes = list_first(qfl);
+	while (lnodes) {
+		qf = lnode_get(lnodes);
+		if (qf->fn)
+			os_fclose (qf->fn);
+		ln3 = list_first(qf->QE);
+		while (ln3) 
+		{
+			qe = lnode_get(ln3);
+			if (qe->question) 
+			{
+				ns_free (qe->question);
+				ns_free (qe->answer);
+				ns_free (qe->lasthint);
+			}
+			list_delete(qf->QE, ln3);
+			ln4 = list_next(qf->QE, ln3);
+			lnode_destroy(ln3);
+			ns_free (qe);
+			ln3 = ln4;
+		}
+		list_delete(qfl, lnodes);
+		ln2 = list_next(qfl, lnodes);
+		lnode_destroy(lnodes);	
+		ns_free (qf);
+		lnodes = ln2;
+	}
+#ifdef WIN32
+	pcre_malloc = old_malloc;
+	pcre_free = old_free;
+#endif
+	return NS_SUCCESS;
+}

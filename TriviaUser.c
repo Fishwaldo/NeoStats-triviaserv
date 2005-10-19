@@ -30,8 +30,91 @@
 #include "neostats.h"	/* Neostats API */
 #include "TriviaServ.h"
 
-static int GetUsersChannelScore (Client *u, const TriviaChan *tc);
-static void UserLeaving(Client *u);
+/*
+ * Free User Data
+ *
+ * ToDo : 1. possibly find way to link nicks so multiple entries for
+ *		same user but different nicks, using duplicate scores
+ *		are not created (maybe check for saved scores on mode +r
+ *		and add them to the current users score, removing the
+ *		old from the database if they change nicks and identify again)
+*/
+static void UserLeaving (Client *u) 
+{
+	TriviaUser *tu;
+	TriviaChannelScore *ts;
+	lnode_t *ln, *ln2;
+	Client *ul;
+	
+	tu = (TriviaUser *)GetUserModValue(u);
+	if (tu) 
+	{
+		ln = list_first(tu->tcsl);
+		while (ln) 
+		{
+			ts = lnode_get(ln);
+			if (tu->lastusedreg && ts->lastused > 0) 
+			{
+				ircsnprintf(ts->savename, sizeof(ts->savename), "%s%s", ts->uname, ts->cname);
+				DBAStore( "Scores", ts->savename, ts, sizeof(TriviaChannelScore));
+			}
+			ns_free(ts);
+			ln2 = list_next(tu->tcsl, ln);
+			list_delete(tu->tcsl, ln);
+			lnode_destroy(ln);
+			ln = ln2;
+		}
+		list_destroy_auto(tu->tcsl);
+		tu->tcsl = NULL;
+		if (tu->lastusedreg && tu->lastused > 0) 
+		{
+			ts = ns_calloc(sizeof(TriviaChannelScore));
+			strlcpy(ts->cname, "Network", MAXCHANLEN);
+			strlcpy(ts->uname, tu->lastusednick, MAXNICK);
+			ts->score = tu->networkscore;
+			ts->lastused = tu->lastused;
+			ircsnprintf(ts->savename, sizeof(ts->savename), "%s%s", ts->uname, ts->cname);
+			DBAStore( "Scores", ts->savename, ts, sizeof(TriviaChannelScore));
+			ns_free(ts);
+		}
+		ClearUserModValue(u);
+		ns_free(tu);
+	}
+	ln = list_first(userlist);
+	while (ln) 
+	{
+		ul = lnode_get(ln);
+		if (ul == u) 
+		{
+			list_delete(userlist, ln);
+			lnode_destroy(ln);
+			break;
+		}
+		ln = list_next(userlist, ln);
+	}
+	return;
+}
+
+/*
+ * Return Users Score For Channel If Exists
+*/
+static int GetUsersChannelScore (Client *u, const TriviaChan *tc) {
+	TriviaChannelScore *ts;
+	int channelscore = 0;
+	
+	ts = ns_calloc(sizeof(TriviaChannelScore));
+	if (tc)
+		ircsnprintf(ts->savename, sizeof(ts->savename), "%s%s", u->name, tc->c->name);
+	else
+		ircsnprintf(ts->savename, sizeof(ts->savename), "%sNetwork", u->name);
+	/* return score only if not reset since the last correct answer, else return 0 */
+	if (DBAFetch( "Scores", ts->savename, ts, sizeof(TriviaChannelScore)))
+		if (((!tc) && TriviaServ.lastreset < ts->lastused) || ((tc) && tc->lastreset < ts->lastused))
+			channelscore = ts->score;
+	ns_free(ts)
+	return channelscore;
+}
+
 /*
  * Adds points to user for channel and network
 */
@@ -103,26 +186,6 @@ void tvs_addpoints(Client *u, TriviaChan *tc)
 }	
 
 /*
- * Return Users Score For Channel If Exists
-*/
-static int GetUsersChannelScore (Client *u, const TriviaChan *tc) {
-	TriviaChannelScore *ts;
-	int channelscore = 0;
-	
-	ts = ns_calloc(sizeof(TriviaChannelScore));
-	if (tc)
-		ircsnprintf(ts->savename, sizeof(ts->savename), "%s%s", u->name, tc->c->name);
-	else
-		ircsnprintf(ts->savename, sizeof(ts->savename), "%sNetwork", u->name);
-	/* return score only if not reset since the last correct answer, else return 0 */
-	if (DBAFetch( "Scores", ts->savename, ts, sizeof(TriviaChannelScore)))
-		if (((!tc) && TriviaServ.lastreset < ts->lastused) || ((tc) && tc->lastreset < ts->lastused))
-			channelscore = ts->score;
-	ns_free(ts)
-	return channelscore;
-}
-
-/*
  * Check if nick Registered or Identified and
  * find channel scores attached to user, and add
  * saved scores for the registered nick if any.
@@ -181,71 +244,6 @@ int KillUser (const CmdParams *cmdparams)
 	if (tu) 
 		UserLeaving(cmdparams->target);
 	return NS_SUCCESS;
-}
-
-/*
- * Free User Data
- *
- * ToDo : 1. possibly find way to link nicks so multiple entries for
- *		same user but different nicks, using duplicate scores
- *		are not created (maybe check for saved scores on mode +r
- *		and add them to the current users score, removing the
- *		old from the database if they change nicks and identify again)
-*/
-static void UserLeaving (Client *u) 
-{
-	TriviaUser *tu;
-	TriviaChannelScore *ts;
-	lnode_t *ln, *ln2;
-	Client *ul;
-	
-	tu = (TriviaUser *)GetUserModValue(u);
-	if (tu) 
-	{
-		ln = list_first(tu->tcsl);
-		while (ln) 
-		{
-			ts = lnode_get(ln);
-			if (tu->lastusedreg && ts->lastused > 0) 
-			{
-				ircsnprintf(ts->savename, sizeof(ts->savename), "%s%s", ts->uname, ts->cname);
-				DBAStore( "Scores", ts->savename, ts, sizeof(TriviaChannelScore));
-			}
-			ns_free(ts);
-			ln2 = list_next(tu->tcsl, ln);
-			list_delete(tu->tcsl, ln);
-			lnode_destroy(ln);
-			ln = ln2;
-		}
-		list_destroy_auto(tu->tcsl);
-		tu->tcsl = NULL;
-		if (tu->lastusedreg && tu->lastused > 0) 
-		{
-			ts = ns_calloc(sizeof(TriviaChannelScore));
-			strlcpy(ts->cname, "Network", MAXCHANLEN);
-			strlcpy(ts->uname, tu->lastusednick, MAXNICK);
-			ts->score = tu->networkscore;
-			ts->lastused = tu->lastused;
-			ircsnprintf(ts->savename, sizeof(ts->savename), "%s%s", ts->uname, ts->cname);
-			DBAStore( "Scores", ts->savename, ts, sizeof(TriviaChannelScore));
-			ns_free(ts);
-		}
-		ClearUserModValue(u);
-		ns_free(tu);
-	}
-	ln = list_first(userlist);
-	while (ln) 
-	{
-		ul = lnode_get(ln);
-		if (ul == u) 
-		{
-			list_delete(userlist, ln);
-			lnode_destroy(ln);
-			break;
-		}
-		ln = list_next(userlist, ln);
-	}
-	return;
 }
 
 /*

@@ -30,7 +30,6 @@
 #include "neostats.h"	/* Neostats API */
 #include "TriviaServ.h"
 
-static void OfflineTChan(Channel *c);
 /*
  * Loads Channel Data
 */

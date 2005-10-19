@@ -30,10 +30,6 @@
 #include "neostats.h"	/* Neostats API */
 #include "TriviaServ.h"
 
-static int find_cat_name(const void *catnode, const void *name);
-static void obscure_question(const TriviaChan *tc);
-static int tvs_doregex(Questions *qe, char *buf);
-static QuestionFiles *tvs_randomquestfile(TriviaChan *tc);
 /*
  * Loads question file offsets into memory
 */
@@ -260,6 +256,176 @@ static QuestionFiles *tvs_randomquestfile(TriviaChan *tc)
 }	
 
 /*
+ * creates regex used to test answers,
+ * and fills in question structure fields
+*/
+static int tvs_doregex(Questions *qe, char *buf) 
+{
+	pcre *re;
+	const char *error;
+	int errofset;
+	int rc;
+	int ovector[9];
+	const char **subs;
+	int gotanswer;
+	char tmpbuf[REGSIZE], tmpbuf1[REGSIZE];	
+	
+	re = pcre_compile(TVSREXEXP, 0, &error, &errofset, NULL);
+	if (!re) {
+		nlog(LOG_WARNING, "Warning, PCRE compile failed: %s at %d", error, errofset);
+		return NS_FAILURE;
+	}
+	gotanswer = 0;
+	/* strip any newlines out */
+	strip(buf);
+	/* we copy the entire thing into the question struct, but it will end up as only the question after pcre does its thing */
+	qe->question = ns_calloc (QUESTSIZE);
+	qe->answer = ns_calloc (ANSSIZE);
+	qe->lasthint = ns_calloc (ANSSIZE);
+	strlcpy(qe->question, buf, QUESTSIZE);
+	os_memset (tmpbuf, 0, ANSSIZE);
+	/* no, its not a infinate loop */
+	for( ; ; )
+	{	
+		rc = pcre_exec(re, NULL, qe->question, strlen(qe->question), 0, 0, ovector, 9);
+		if (rc <= 0) 
+		{
+			if ((rc == PCRE_ERROR_NOMATCH) && (gotanswer > 0)) 
+			{
+				/* we got something in q & a, so proceed. */
+				ircsnprintf(tmpbuf1, REGSIZE, ".*(?i)(?:%s).*", tmpbuf);
+				dlog (DEBUG3, "regexp will be %s\n", tmpbuf1);
+				qe->regexp = pcre_compile(tmpbuf1, 0, &error, &errofset, NULL);
+				if (qe->regexp == NULL) 
+				{
+					/* damn damn damn, our constructed regular expression failed */
+					nlog(LOG_WARNING, "pcre_compile_answer failed: %s at %d", error, errofset);
+					ns_free (re);
+					return NS_FAILURE;
+				}
+				ns_free (re);
+				qe->points = 1;
+				qe->hints = 0;
+				return NS_SUCCESS;
+			} 
+			/* some other error occured. Damn. */
+			nlog(LOG_WARNING, "pcre_exec failed. %s - %d", qe->question, rc);
+			ns_free (re);
+			return NS_FAILURE;
+		} else if (rc == 3) {
+			gotanswer++;
+			/* split out the regexp */
+			pcre_get_substring_list(buf, ovector, rc, &subs);
+			/* we pull one answer off at a time, so we place the question (and maybe another answer) into question again for further processing later */
+			strlcpy(qe->question, subs[1], QUESTSIZE);
+			/* if this is the first answer, this is the one we display in the channel */
+			if (qe->answer[0] == 0) 
+			{
+				strlcpy(qe->answer, subs[2], ANSSIZE);
+				strlcpy(qe->lasthint, subs[2], ANSSIZE);
+			}
+			/* tmpbuf will hold our eventual regular expression to find the answer in the channel */
+			if (tmpbuf[0] == 0) 
+			{
+				ircsnprintf(tmpbuf, ANSSIZE, "%s", subs[2]);
+			} else {
+				ircsnprintf(tmpbuf1, ANSSIZE, "%s|%s", tmpbuf, subs[2]);
+				strlcpy(tmpbuf, tmpbuf1, ANSSIZE);
+			}
+			/* free our subs */
+			pcre_free_substring_list(subs);
+		}
+	}		
+	qe->points = 1;
+	return NS_SUCCESS;		
+	
+}
+
+/*
+ * Obscures question from basic trivia answer bots
+*/
+static void obscure_question(const TriviaChan *tc) 
+{
+	char *out, *tmpcolour, *tmpunseen, *tmpstr;
+	Questions *qe;
+	int random, i, qlen, charcount=0, tucount, tccount;
+
+	if (tc->curquest == NULL) 
+	{
+		nlog(LOG_WARNING, "curquest is missing for obscure_question");
+		return;
+	}
+	qe = tc->curquest;     
+	/* set question colour and hidden letters colour */
+	tmpstr = ns_calloc (BUFSIZE);
+	tmpcolour = ns_calloc (BUFSIZE);
+	strlcpy(tmpcolour, "\003", BUFSIZE);
+	if (tc->foreground < 10)
+		strlcat(tmpcolour, "0", BUFSIZE);
+	ircsnprintf(tmpstr, BUFSIZE, "%d,", tc->foreground);
+	strlcat(tmpcolour, tmpstr, BUFSIZE);
+	if (tc->background < 10)
+		strlcat(tmpcolour, "0", BUFSIZE);
+	ircsnprintf(tmpstr, BUFSIZE, "%d", tc->background);
+	strlcat(tmpcolour, tmpstr, BUFSIZE);
+	tmpunseen = ns_calloc (BUFSIZE);
+	strlcpy(tmpunseen, "\003", BUFSIZE);
+	if (tc->background < 10)
+		strlcat(tmpunseen, "0", BUFSIZE);
+	ircsnprintf(tmpstr, BUFSIZE, "%d,", tc->background);
+	strlcat(tmpunseen, tmpstr, BUFSIZE);
+	if (tc->background < 10)
+		strlcat(tmpunseen, "0", BUFSIZE);
+	ircsnprintf(tmpstr, BUFSIZE, "%d", tc->background);
+	strlcat(tmpunseen, tmpstr, BUFSIZE);
+	/* obscure question using defined channel colours, and send to channel */
+	out = ns_calloc (BUFSIZE+1);
+	tucount = (int)strlen(tmpunseen);
+	tccount = (int)strlen(tmpcolour);
+	strlcpy(out, tmpcolour, BUFSIZE);
+	charcount += tccount;
+	qlen = (int)strlen(qe->question);
+	for (i=0;( i < qlen ) && ( charcount < (BUFSIZE-13) );i++) 
+	{
+		if (qe->question[i] == ' ') 
+		{
+			/* get random letter */
+			random =  ((rand() % 52) + 65);
+			if (random > 90)
+				random += 5;
+			/* insert same background/foreground color,
+			 * then random character, and question colour
+			 */
+			strlcat(out, tmpunseen, BUFSIZE);
+			charcount += tucount;
+			out[charcount++] = random;
+			strlcat(out, tmpcolour, BUFSIZE);
+			charcount += tccount;
+		} else {
+			/* insert the char, changing case if required, its a word */
+			if (tc->boldcase > 1 && ((qe->question[i] >= 'a' && qe->question[i] <= 'z') || (qe->question[i] >= 'A' && qe->question[i] <= 'Z'))) 
+			{
+				if (tc->boldcase > 3 && qe->question[i] > 'Z') 
+				{
+					out[charcount++] = (qe->question[i] - ('a' - 'A'));
+				} else if (tc->boldcase > 1 && tc->boldcase < 4 && qe->question[i] < 'a') {
+					out[charcount++] = (qe->question[i] + ('a' - 'A'));
+				} else {
+					out[charcount++] = qe->question[i];
+				}
+			} else {
+				out[charcount++] = qe->question[i];
+			}
+		}
+	}
+	irc_chanprivmsg (tvs_bot, tc->name, "%s%s", (tc->boldcase % 2) ? "\002" : "", out);
+	ns_free (tmpstr);
+	ns_free (tmpcolour);
+	ns_free (tmpunseen);
+	ns_free (out);
+}
+
+/*
  * Selects random question from the question
  * file, then calls obscure which sends the
  * obscured question to the channel
@@ -374,92 +540,6 @@ void tvs_ansquest(TriviaChan *tc)
 	ns_free (tc->curquest);
 	tc->curquest = NULL;
 	return;
-}
-
-/*
- * creates regex used to test answers,
- * and fills in question structure fields
-*/
-static int tvs_doregex(Questions *qe, char *buf) 
-{
-	pcre *re;
-	const char *error;
-	int errofset;
-	int rc;
-	int ovector[9];
-	const char **subs;
-	int gotanswer;
-	char tmpbuf[REGSIZE], tmpbuf1[REGSIZE];	
-	
-	re = pcre_compile(TVSREXEXP, 0, &error, &errofset, NULL);
-	if (!re) {
-		nlog(LOG_WARNING, "Warning, PCRE compile failed: %s at %d", error, errofset);
-		return NS_FAILURE;
-	}
-	gotanswer = 0;
-	/* strip any newlines out */
-	strip(buf);
-	/* we copy the entire thing into the question struct, but it will end up as only the question after pcre does its thing */
-	qe->question = ns_calloc (QUESTSIZE);
-	qe->answer = ns_calloc (ANSSIZE);
-	qe->lasthint = ns_calloc (ANSSIZE);
-	strlcpy(qe->question, buf, QUESTSIZE);
-	os_memset (tmpbuf, 0, ANSSIZE);
-	/* no, its not a infinate loop */
-	for( ; ; )
-	{	
-		rc = pcre_exec(re, NULL, qe->question, strlen(qe->question), 0, 0, ovector, 9);
-		if (rc <= 0) 
-		{
-			if ((rc == PCRE_ERROR_NOMATCH) && (gotanswer > 0)) 
-			{
-				/* we got something in q & a, so proceed. */
-				ircsnprintf(tmpbuf1, REGSIZE, ".*(?i)(?:%s).*", tmpbuf);
-				dlog (DEBUG3, "regexp will be %s\n", tmpbuf1);
-				qe->regexp = pcre_compile(tmpbuf1, 0, &error, &errofset, NULL);
-				if (qe->regexp == NULL) 
-				{
-					/* damn damn damn, our constructed regular expression failed */
-					nlog(LOG_WARNING, "pcre_compile_answer failed: %s at %d", error, errofset);
-					ns_free (re);
-					return NS_FAILURE;
-				}
-				ns_free (re);
-				qe->points = 1;
-				qe->hints = 0;
-				return NS_SUCCESS;
-			} 
-			/* some other error occured. Damn. */
-			nlog(LOG_WARNING, "pcre_exec failed. %s - %d", qe->question, rc);
-			ns_free (re);
-			return NS_FAILURE;
-		} else if (rc == 3) {
-			gotanswer++;
-			/* split out the regexp */
-			pcre_get_substring_list(buf, ovector, rc, &subs);
-			/* we pull one answer off at a time, so we place the question (and maybe another answer) into question again for further processing later */
-			strlcpy(qe->question, subs[1], QUESTSIZE);
-			/* if this is the first answer, this is the one we display in the channel */
-			if (qe->answer[0] == 0) 
-			{
-				strlcpy(qe->answer, subs[2], ANSSIZE);
-				strlcpy(qe->lasthint, subs[2], ANSSIZE);
-			}
-			/* tmpbuf will hold our eventual regular expression to find the answer in the channel */
-			if (tmpbuf[0] == 0) 
-			{
-				ircsnprintf(tmpbuf, ANSSIZE, "%s", subs[2]);
-			} else {
-				ircsnprintf(tmpbuf1, ANSSIZE, "%s|%s", tmpbuf, subs[2]);
-				strlcpy(tmpbuf, tmpbuf1, ANSSIZE);
-			}
-			/* free our subs */
-			pcre_free_substring_list(subs);
-		}
-	}		
-	qe->points = 1;
-	return NS_SUCCESS;		
-	
 }
 
 /*
@@ -599,86 +679,3 @@ void do_hint(const TriviaChan *tc)
 	irc_chanprivmsg (tvs_bot, tc->name, "\003%d%sHint %d: %s", tc->hintcolour, (tc->boldcase %2) ? "\002" : "", qe->hints, qe->lasthint);
 }
 
-/*
- * Obscures question from basic trivia answer bots
-*/
-static void obscure_question(const TriviaChan *tc) 
-{
-	char *out, *tmpcolour, *tmpunseen, *tmpstr;
-	Questions *qe;
-	int random, i, qlen, charcount=0, tucount, tccount;
-
-	if (tc->curquest == NULL) 
-	{
-		nlog(LOG_WARNING, "curquest is missing for obscure_question");
-		return;
-	}
-	qe = tc->curquest;     
-	/* set question colour and hidden letters colour */
-	tmpstr = ns_calloc (BUFSIZE);
-	tmpcolour = ns_calloc (BUFSIZE);
-	strlcpy(tmpcolour, "\003", BUFSIZE);
-	if (tc->foreground < 10)
-		strlcat(tmpcolour, "0", BUFSIZE);
-	ircsnprintf(tmpstr, BUFSIZE, "%d,", tc->foreground);
-	strlcat(tmpcolour, tmpstr, BUFSIZE);
-	if (tc->background < 10)
-		strlcat(tmpcolour, "0", BUFSIZE);
-	ircsnprintf(tmpstr, BUFSIZE, "%d", tc->background);
-	strlcat(tmpcolour, tmpstr, BUFSIZE);
-	tmpunseen = ns_calloc (BUFSIZE);
-	strlcpy(tmpunseen, "\003", BUFSIZE);
-	if (tc->background < 10)
-		strlcat(tmpunseen, "0", BUFSIZE);
-	ircsnprintf(tmpstr, BUFSIZE, "%d,", tc->background);
-	strlcat(tmpunseen, tmpstr, BUFSIZE);
-	if (tc->background < 10)
-		strlcat(tmpunseen, "0", BUFSIZE);
-	ircsnprintf(tmpstr, BUFSIZE, "%d", tc->background);
-	strlcat(tmpunseen, tmpstr, BUFSIZE);
-	/* obscure question using defined channel colours, and send to channel */
-	out = ns_calloc (BUFSIZE+1);
-	tucount = (int)strlen(tmpunseen);
-	tccount = (int)strlen(tmpcolour);
-	strlcpy(out, tmpcolour, BUFSIZE);
-	charcount += tccount;
-	qlen = (int)strlen(qe->question);
-	for (i=0;( i < qlen ) && ( charcount < (BUFSIZE-13) );i++) 
-	{
-		if (qe->question[i] == ' ') 
-		{
-			/* get random letter */
-			random =  ((rand() % 52) + 65);
-			if (random > 90)
-				random += 5;
-			/* insert same background/foreground color,
-			 * then random character, and question colour
-			 */
-			strlcat(out, tmpunseen, BUFSIZE);
-			charcount += tucount;
-			out[charcount++] = random;
-			strlcat(out, tmpcolour, BUFSIZE);
-			charcount += tccount;
-		} else {
-			/* insert the char, changing case if required, its a word */
-			if (tc->boldcase > 1 && ((qe->question[i] >= 'a' && qe->question[i] <= 'z') || (qe->question[i] >= 'A' && qe->question[i] <= 'Z'))) 
-			{
-				if (tc->boldcase > 3 && qe->question[i] > 'Z') 
-				{
-					out[charcount++] = (qe->question[i] - ('a' - 'A'));
-				} else if (tc->boldcase > 1 && tc->boldcase < 4 && qe->question[i] < 'a') {
-					out[charcount++] = (qe->question[i] + ('a' - 'A'));
-				} else {
-					out[charcount++] = qe->question[i];
-				}
-			} else {
-				out[charcount++] = qe->question[i];
-			}
-		}
-	}
-	irc_chanprivmsg (tvs_bot, tc->name, "%s%s", (tc->boldcase % 2) ? "\002" : "", out);
-	ns_free (tmpstr);
-	ns_free (tmpcolour);
-	ns_free (tmpunseen);
-	ns_free (out);
-}
