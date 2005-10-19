@@ -48,7 +48,6 @@ int tvs_processtimer (void *);
 int tvs_dailytimer (void *);
 int tvs_weeklytimer (void *);
 int tvs_monthlytimer (void *);
-int tvs_clearscoretimers (int cleartype);
 
 Bot *tvs_bot;
 
@@ -453,29 +452,8 @@ int tvs_processtimer(void *userptr)
 /*
  * Process Timers to clear channel scores
 */
-int tvs_dailytimer(void *userptr) 
+static void tvs_clearscoretimers(int cleartype)
 {
-	SET_SEGV_LOCATION();
-	return tvs_clearscoretimers(1);
-}
-
-int tvs_weeklytimer(void *userptr) 
-{
-	SET_SEGV_LOCATION();
-	return tvs_clearscoretimers(2);
-}
-
-int tvs_monthlytimer(void *userptr) 
-{
-	int i;
-
-	SET_SEGV_LOCATION();
-	for (i = 4 ; i < 7 ; i++)
-		tvs_clearscoretimers(i);
-	return tvs_clearscoretimers(3);
-}
-
-int tvs_clearscoretimers(int cleartype) {
 	TriviaChan *tc;
 	hscan_t hs;
 	hnode_t *hnodes;
@@ -553,5 +531,30 @@ int tvs_clearscoretimers(int cleartype) {
 		}
 		DBAStoreConfigInt("LastReset", TriviaServ.lastreset);
 	}
+}
+
+int tvs_dailytimer(void *userptr) 
+{
+	SET_SEGV_LOCATION();
+	tvs_clearscoretimers(1);
 	return NS_SUCCESS;
 }
+
+int tvs_weeklytimer(void *userptr) 
+{
+	SET_SEGV_LOCATION();
+	tvs_clearscoretimers(2);
+	return NS_SUCCESS;
+}
+
+int tvs_monthlytimer(void *userptr) 
+{
+	int i;
+
+	SET_SEGV_LOCATION();
+	for (i = 4 ; i < 7 ; i++)
+		tvs_clearscoretimers(i);
+	tvs_clearscoretimers(3);
+	return NS_SUCCESS;
+}
+

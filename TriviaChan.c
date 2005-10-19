@@ -116,38 +116,38 @@ TriviaChan *NewTChan(Channel *c)
 /*
  * Last User left Channel
 */
-TriviaChan *OfflineTChan(Channel *c) {
+void OfflineTChan(Channel *c)
+{
 	TriviaChan *tc;
 	if (!c)
-		return NULL;
+		return;
 	tc = (TriviaChan *) GetChannelModValue (c);
 	if (!tc) 
 	{
 		nlog(LOG_WARNING, "TriviaChan %s already marked offline?!!?!", c->name);
-		return NULL;
+		return;
 	}
 	ClearChannelModValue (c);
 	tc->c = NULL;
 	tc->active = 0;
 	tc->curquest = NULL;
 	irc_part( tvs_bot, c->name, NULL );
-	return tc;
 }
 
 /*
  * First User Joined Channel
 */
-TriviaChan *OnlineTChan(Channel *c) 
+void OnlineTChan(Channel *c) 
 {
 	TriviaChan *tc;
 	hnode_t *tcn;
 	if (!c)
-		return NULL;
+		return;
 	tc = (TriviaChan *) GetChannelModValue (c);
 	if (tc) 
 	{
 		nlog(LOG_WARNING, "TriviaChan %s already marked online?!?!", c->name);
-		return tc;
+		return;
 	}
 	tcn = hash_lookup(tch, c->name);
 	if (tcn) 
@@ -161,15 +161,13 @@ TriviaChan *OnlineTChan(Channel *c)
 			irc_join (tvs_bot, tc->name, "+o");
 		else
 			irc_join (tvs_bot, tc->name, NULL);
-		return tc;
 	}
-	return NULL;
 }
 	
 /*
  * Remove Trivia Channel Entry
 */
-int DelTChan(char *chan) 
+int DelTChan(const char *chan) 
 {
 	hnode_t *hnode;
 	TriviaChan *tc;
@@ -195,10 +193,9 @@ int DelTChan(char *chan)
 /*
  * Save Trivia Channel Entry to DB
 */
-int SaveTChan (TriviaChan *tc) 
+void SaveTChan (TriviaChan *tc) 
 {
 	DBAStore ("Channel", tc->name, tc, sizeof (TriviaChan));
-	return NS_SUCCESS;
 }
 
 /*

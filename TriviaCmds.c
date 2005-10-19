@@ -287,6 +287,8 @@ int tvs_cmd_resetscores (const CmdParams *cmdparams)
 		case 6:
 			irc_chanprivmsg (tvs_bot, cmdparams->channel->name, "Channel Trivia Scores will now be reset Anually.");
 			break;
+		default:
+			break;
 	}
 	return NS_SUCCESS;
 }

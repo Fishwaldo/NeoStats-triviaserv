@@ -161,10 +161,10 @@ int tvs_chans(const CmdParams *cmdparams);
 int LoadChannel( void *data, int size );
 int LoadCQSets( void *data, int size );
 TriviaChan *NewTChan(Channel *c);
-TriviaChan *OfflineTChan(Channel *c);
-TriviaChan *OnlineTChan(Channel *c);
-int DelTChan(char *chan);
-int SaveTChan (TriviaChan *tc);
+void OfflineTChan(Channel *c);
+void OnlineTChan(Channel *c);
+int DelTChan(const char *chan);
+void SaveTChan (TriviaChan *tc);
 int EmptyChan (const CmdParams *cmdparams);
 int NewChan(const CmdParams *cmdparams);
 
@@ -177,7 +177,7 @@ void tvs_newquest(TriviaChan *tc);
 void tvs_ansquest(TriviaChan *tc);
 int tvs_doregex(Questions *qe, char *buf);
 void tvs_testanswer(Client* u, TriviaChan *tc, char *line);
-void do_hint(TriviaChan *tc);
-void obscure_question(TriviaChan *tc);
+void do_hint(const TriviaChan *tc);
+void obscure_question(const TriviaChan *tc);
 
 #endif /* TRIVIASERV_H */

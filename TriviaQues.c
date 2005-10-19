@@ -364,7 +364,7 @@ restartquestionselection:
 void tvs_ansquest(TriviaChan *tc) 
 {
 	Questions *qe;
-	int i;
+	unsigned int i;
 	
 	qe = tc->curquest;
 	/* modify answer character case if required before displaying */
@@ -491,7 +491,8 @@ int tvs_doregex(Questions *qe, char *buf)
 void tvs_testanswer(Client* u, TriviaChan *tc, char *line) 
 {
 	Questions *qe;
-	int rc, i;
+	int rc;
+	unsigned int i;
 	
 	qe = tc->curquest;
 	if (!qe)
@@ -539,7 +540,7 @@ void tvs_testanswer(Client* u, TriviaChan *tc, char *line)
 /* 
  * Add letters to and display hint
 */
-void do_hint(TriviaChan *tc) 
+void do_hint(const TriviaChan *tc) 
 {
 	Questions *qe;
 	int i, i2, wordstart, wordend, totalwordletters, letterpos, letterpostest, pfw, num;
@@ -624,7 +625,7 @@ void do_hint(TriviaChan *tc)
 /*
  * Obscures question from basic trivia answer bots
 */
-void obscure_question(TriviaChan *tc) 
+void obscure_question(const TriviaChan *tc) 
 {
 	char *out, *tmpcolour, *tmpunseen, *tmpstr;
 	Questions *qe;
