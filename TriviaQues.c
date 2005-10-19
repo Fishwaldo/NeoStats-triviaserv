@@ -225,60 +225,38 @@ void tvs_quesset(const CmdParams *cmdparams, TriviaChan *tc, const char *qsn)
 */
 static QuestionFiles *tvs_randomquestfile(TriviaChan *tc) 
 {
+	list_t *qlist;
 	lnode_t *lnode;
 	QuestionFiles *qf;
-	unsigned int qfn, i;
+	unsigned int i;
+	unsigned int qfn = 0;
 
 	if (list_isempty(tc->qfl)) 
 	{
 		/* if the qfl for this chan is empty, use all qfl's */
-		if (list_count(qfl) > 1)
-			qfn=(unsigned int)(rand()%((int)(list_count(qfl))));
-		else
-			qfn= 0;
-		/* ok, this is bad.. but sigh, not much we can do atm. */
-		lnode = list_first(qfl);
-		i = 0;
-		while (i < qfn) 
-		{
-			lnode = list_next(qfl, lnode);
-			i++;
-		}
-		qf = lnode_get(lnode);				
-		if (qf) 
-		{
-			return qf;
-		}
-		nlog(LOG_WARNING, "Question File Selection (Random) for %s failed. Using first entry", tc->name);
-		lnode = list_first(qfl);
-		qf = lnode_get(lnode);
-		if (qf)
-			return qf;
-		nlog(LOG_WARNING, "Question File Selection (Random) for %s failed. Unable to select First Question File", tc->name);
-	} else {
-		/* select a random question file */
-		qfn=(unsigned int)(rand()%((int)(list_count(tc->qfl))));
-		/* ok, this is bad.. but sigh, not much we can do atm. */
-		lnode = list_first(tc->qfl);
-		i = 0;
-		while (i < qfn) 
-		{
-			lnode = list_next(tc->qfl, lnode);
-			i++;
-		}
-		qf = lnode_get(lnode);				
-		if (qf != NULL) 
-		{
-			return qf;
-		}
-		nlog(LOG_WARNING, "Question File Selection (Specific) for %s failed. Using first entry", tc->name);
-		lnode = list_first(tc->qfl);
-		qf = lnode_get(lnode);
-		if (qf != NULL)
-			return qf;
-		nlog(LOG_WARNING, "Question File Selection (Specific) for %s failed. Unable to select First Question File", tc->name);
+		qlist = qfl;
 	}
-	return NULL;
+	else
+	{
+		qlist = tc->qfl;
+	}
+	if (list_count(qlist) > 1)
+		qfn = (unsigned int)(rand()%((int)(list_count(qlist))));
+	lnode = list_first(qlist);
+	for ( i = 0; i < qfn; i++ ) 
+	{
+		lnode = list_next(qlist, lnode);
+	}
+	qf = lnode_get(lnode);				
+	if (qf == NULL) 
+	{
+		nlog(LOG_WARNING, "Question File Selection for %s failed. Using first entry", tc->name);
+		lnode = list_first(qlist);
+		qf = lnode_get(lnode);
+		if (qf == NULL)	
+			nlog(LOG_WARNING, "Question File Selection for %s failed. Unable to select First Question File", tc->name);
+	}
+	return qf;
 }	
 
 /*
