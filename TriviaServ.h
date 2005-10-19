@@ -154,7 +154,7 @@ int tvs_catlist(const CmdParams *cmdparams);
 int tvs_chans(const CmdParams *cmdparams);
 
 /* TriviaChan.c */
-int LoadChannel( void *data, int size );
+int LoadChannels( void );
 int LoadCQSets( void *data, int size );
 TriviaChan *NewTChan(Channel *c);
 void OnlineTChan(Channel *c);
@@ -164,7 +164,7 @@ int EmptyChan (const CmdParams *cmdparams);
 int NewChan(const CmdParams *cmdparams);
 
 /* TriviaQues.c */
-void tvs_parse_questions(void);
+int LoadQuestionFiles( void );
 void tvs_quesset(const CmdParams *cmdparams, TriviaChan *tc, const char *qsn);
 void tvs_newquest(TriviaChan *tc);
 void tvs_ansquest(TriviaChan *tc);

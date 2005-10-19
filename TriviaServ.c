@@ -36,6 +36,8 @@
 #include <sys/param.h>
 #endif
 
+static int ChanPrivmsg (const CmdParams *cmdparams);
+
 #ifdef WIN32
 static void *(*old_malloc)(size_t);
 static void (*old_free) (void *);
@@ -98,8 +100,6 @@ static bot_setting tvs_settings[]=
 	NS_SETTING_END()
 };
 
-static int ChanPrivmsg (const CmdParams *cmdparams);
-
 /** Module Events */
 ModuleEvent module_events[] = {
 	{EVENT_CPRIVATE, ChanPrivmsg, 0},
@@ -110,6 +110,19 @@ ModuleEvent module_events[] = {
 	{EVENT_NICK, QuitNickUser, 0},
 	{EVENT_UMODE, UmodeUser, 0},
 	NS_EVENT_END()
+};
+
+/** BotInfo */
+static BotInfo tvs_botinfo = 
+{
+	"TriviaServ", 
+	"TriviaServ1", 
+	"TS", 
+	BOT_COMMON_HOST, 
+	"Trivia Bot", 	
+	BOT_FLAG_SERVICEBOT,
+	tvs_commands, 
+	tvs_settings,
 };
 
 /*
@@ -131,140 +144,6 @@ static int ChanPrivmsg (const CmdParams *cmdparams)
 	strip_mirc_codes(tmpbuf);
 	tvs_testanswer(cmdparams->source, tc, tmpbuf);
 	ns_free (tmpbuf);
-	return NS_SUCCESS;
-}
-
-/** BotInfo */
-static BotInfo tvs_botinfo = 
-{
-	"TriviaServ", 
-	"TriviaServ1", 
-	"TS", 
-	BOT_COMMON_HOST, 
-	"Trivia Bot", 	
-	BOT_FLAG_SERVICEBOT,
-	tvs_commands, 
-	tvs_settings,
-};
-
-/*
- * Find Question files
- *
- * ToDo : fix windows to search for files instead of having them predefined
-*/
-#ifndef WIN32
-int file_select (const struct direct *entry) {
-	char *ptr;
-	if ((ircstrcasecmp(entry->d_name, ".")==0) || (ircstrcasecmp(entry->d_name, "..")==0)) 
-		return 0;
-	/* check filename extension */
-	ptr = strrchr(entry->d_name, '.');
-	if ((ptr) && !(ircstrcasecmp(ptr, ".qns"))) {
-			return NS_SUCCESS;
-	}
-	return 0;	
-}
-#else
-static char* filelist[] = {
-"acronyms1.qns",
-"ads1.qns",
-"algebra1.qns",
-"animals1.qns",
-"authors1.qns",
-"babynames1.qns",
-"bdsm.qns",
-"books1.qns",
-"born1.qns",
-"capitals1.qns",
-"castles1.qns",
-"crypticgroupnames1.qns",
-"darkangel1.qns",
-"discworld1.qns",
-"eighties.qns",
-"eightiesmusic1.qns",
-"eightiestvmovies1.qns",
-"elements1.qns",
-"farscape1.qns",
-"fifties1.qns",
-"fiftiesmusic1.qns",
-"generalknowledge1.qns",
-"history18thcenturyandbefore1.qns",
-"history19thcentury1.qns",
-"history20thcentury1.qns",
-"licenseplates1.qns",
-"links.qns",
-"lyrics1.qns",
-"music1.qns",
-"musicterms1.qns",
-"nametheyear1.qns",
-"nineties1.qns",
-"ninetiesmusic1.qns",
-"olympics1.qns",
-"onthisday1.qns",
-"oz1.qns",
-"phobias1.qns",
-"proverbs1.qns",
-"quotations1.qns",
-"random.qns",
-"rhymetime1.qns",
-"saints1.qns",
-"seventies1.qns",
-"seventiesmusic1.qns",
-"sexterms1.qns",
-"simpsons1.qns",
-"sixties1.qns",
-"sixtiesmusic1.qns",
-"smallville1.qns",
-"sports1.qns",
-"stargatesg11.qns",
-"tvmovies1.qns",
-"uk1.qns",
-"unscramble1.qns",
-"us1.qns",
-"uselessfactsandtrivia1.qns",
-NULL
-};
-#endif
-
-/*
- * load settings
-*/
-static int tvs_get_settings(void) {
-	QuestionFiles *qf;
-	int i, count = 0;
-#ifndef WIN32
-	struct direct **files;
-
-	SET_SEGV_LOCATION();
-	/* Scan the questions directory for question files, and create the hashs */
-	count = scandir (questpath, &files, file_select, alphasort);
-#else
-	{
-		char** pfilelist = filelist;
-		while(*pfilelist) 
-		{
-			count ++;
-			pfilelist ++;
-		}
-	}
-#endif
-	if (count <= 0) 
-	{
-		nlog(LOG_CRITICAL, "No Question Files Found");
-		return NS_FAILURE;
-	}
-	for (i = 1; i<count; i++) 
-	{
-		qf = ns_calloc (sizeof(QuestionFiles));
-#ifndef WIN32
-		strlcpy(qf->filename, files[i-1]->d_name, MAXPATH);
-#else
-		strlcpy(qf->filename, filelist[i-1], MAXPATH);
-#endif
-		qf->QE = list_create(LISTCOUNT_T_MAX);
-		lnode_create_append(qfl, qf);
-	}
-	DBAFetchRows ("Channel", LoadChannel);
 	return NS_SUCCESS;
 }
 
@@ -441,13 +320,11 @@ int ModInit( void )
 		TriviaServ.lastreset = 0;
 		DBAStoreConfigInt("LastReset", TriviaServ.lastreset);
 	}
-	TriviaServ.Questions = 0;
-	qfl = list_create(LISTCOUNT_T_MAX);
 	userlist = list_create(LISTCOUNT_T_MAX);
-	tch = hash_create(HASHCOUNT_T_MAX, 0, 0);
-	if (tvs_get_settings() == NS_FAILURE) 
+	if (LoadChannels() == NS_FAILURE) 
 		return NS_FAILURE;
-	tvs_parse_questions();
+	if (LoadQuestionFiles() == NS_FAILURE) 
+		return NS_FAILURE;
 	/*
 	 * read the Channel Question Sets AFTER
 	 * parsing the question files, so the name

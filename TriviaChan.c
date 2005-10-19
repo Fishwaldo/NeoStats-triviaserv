@@ -33,7 +33,7 @@
 /*
  * Loads Channel Data
 */
-int LoadChannel( void *data, int size ) 
+static int LoadChannel( void *data, int size ) 
 {
 	TriviaChan *tc;
 
@@ -44,6 +44,19 @@ int LoadChannel( void *data, int size )
 	dlog (DEBUG1, "Loaded TC entry for Channel %s", tc->name);
 	return NS_FALSE;
 }
+
+int LoadChannels( void )
+{
+	tch = hash_create(HASHCOUNT_T_MAX, 0, 0);
+	if( tch == NULL )
+	{
+		nlog( LOG_CRITICAL, "Unable to create channel hash" );
+		return NS_FAILURE;
+	}
+	DBAFetchRows ("Channel", LoadChannel);
+	return NS_SUCCESS;
+}
+
 
 /*
  * Loads Channel Question Sets Data

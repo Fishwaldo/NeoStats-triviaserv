@@ -30,10 +30,91 @@
 #include "neostats.h"	/* Neostats API */
 #include "TriviaServ.h"
 
+#ifdef WIN32
+static char* filelist[] = {
+"acronyms1.qns",
+"ads1.qns",
+"algebra1.qns",
+"animals1.qns",
+"authors1.qns",
+"babynames1.qns",
+"bdsm.qns",
+"books1.qns",
+"born1.qns",
+"capitals1.qns",
+"castles1.qns",
+"crypticgroupnames1.qns",
+"darkangel1.qns",
+"discworld1.qns",
+"eighties.qns",
+"eightiesmusic1.qns",
+"eightiestvmovies1.qns",
+"elements1.qns",
+"farscape1.qns",
+"fifties1.qns",
+"fiftiesmusic1.qns",
+"generalknowledge1.qns",
+"history18thcenturyandbefore1.qns",
+"history19thcentury1.qns",
+"history20thcentury1.qns",
+"licenseplates1.qns",
+"links.qns",
+"lyrics1.qns",
+"music1.qns",
+"musicterms1.qns",
+"nametheyear1.qns",
+"nineties1.qns",
+"ninetiesmusic1.qns",
+"olympics1.qns",
+"onthisday1.qns",
+"oz1.qns",
+"phobias1.qns",
+"proverbs1.qns",
+"quotations1.qns",
+"random.qns",
+"rhymetime1.qns",
+"saints1.qns",
+"seventies1.qns",
+"seventiesmusic1.qns",
+"sexterms1.qns",
+"simpsons1.qns",
+"sixties1.qns",
+"sixtiesmusic1.qns",
+"smallville1.qns",
+"sports1.qns",
+"stargatesg11.qns",
+"tvmovies1.qns",
+"uk1.qns",
+"unscramble1.qns",
+"us1.qns",
+"uselessfactsandtrivia1.qns",
+NULL
+};
+#endif
+/*
+ * Find Question files
+ *
+ * ToDo : fix windows to search for files instead of having them predefined
+*/
+#ifndef WIN32
+int file_select (const struct direct *entry) {
+	char *ptr;
+	if ((ircstrcasecmp(entry->d_name, ".")==0) || (ircstrcasecmp(entry->d_name, "..")==0)) 
+		return 0;
+	/* check filename extension */
+	ptr = strrchr(entry->d_name, '.');
+	if ((ptr) && !(ircstrcasecmp(ptr, ".qns"))) {
+			return NS_SUCCESS;
+	}
+	return 0;	
+}
+#endif
+
 /*
  * Loads question file offsets into memory
 */
-void tvs_parse_questions() {
+static void tvs_parse_questions(void)
+{
 	QuestionFiles *qf;
 	Questions *qe;
 	lnode_t *qfnode;
@@ -95,6 +176,48 @@ void tvs_parse_questions() {
 		TriviaServ.Questions = TriviaServ.Questions + i;
 		i = 0;
 	}		
+}
+
+int LoadQuestionFiles( void )
+{
+	QuestionFiles *qf;
+	int i, count = 0;
+#ifndef WIN32
+	struct direct **files;
+
+	SET_SEGV_LOCATION();
+	/* Scan the questions directory for question files, and create the hashs */
+	count = scandir (questpath, &files, file_select, alphasort);
+#else
+	{
+		char** pfilelist = filelist;
+		while(*pfilelist) 
+		{
+			count ++;
+			pfilelist ++;
+		}
+	}
+#endif
+	if (count <= 0) 
+	{
+		nlog(LOG_CRITICAL, "No Question Files Found");
+		return NS_FAILURE;
+	}
+	TriviaServ.Questions = 0;
+	qfl = list_create(LISTCOUNT_T_MAX);
+	for (i = 1; i<count; i++) 
+	{
+		qf = ns_calloc (sizeof(QuestionFiles));
+#ifndef WIN32
+		strlcpy(qf->filename, files[i-1]->d_name, MAXPATH);
+#else
+		strlcpy(qf->filename, filelist[i-1], MAXPATH);
+#endif
+		qf->QE = list_create(LISTCOUNT_T_MAX);
+		lnode_create_append(qfl, qf);
+	}
+	tvs_parse_questions();
+	return NS_SUCCESS;
 }
 
 /*
