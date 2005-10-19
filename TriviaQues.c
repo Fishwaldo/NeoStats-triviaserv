@@ -248,15 +248,13 @@ static QuestionFiles *tvs_randomquestfile(TriviaChan *tc)
 		if (qf) 
 		{
 			return qf;
-		} else {
-			nlog(LOG_WARNING, "Question File Selection (Random) for %s failed. Using first entry", tc->name);
-			lnode = list_first(qfl);
-			qf = lnode_get(lnode);
-			if (qf)
-				return qf;
-			nlog(LOG_WARNING, "Question File Selection (Random) for %s failed. Unable to select First Question File", tc->name);
-			return NULL;			
 		}
+		nlog(LOG_WARNING, "Question File Selection (Random) for %s failed. Using first entry", tc->name);
+		lnode = list_first(qfl);
+		qf = lnode_get(lnode);
+		if (qf)
+			return qf;
+		nlog(LOG_WARNING, "Question File Selection (Random) for %s failed. Unable to select First Question File", tc->name);
 	} else {
 		/* select a random question file */
 		qfn=(unsigned int)(rand()%((int)(list_count(tc->qfl))));
@@ -272,17 +270,14 @@ static QuestionFiles *tvs_randomquestfile(TriviaChan *tc)
 		if (qf != NULL) 
 		{
 			return qf;
-		} else {
-			nlog(LOG_WARNING, "Question File Selection (Specific) for %s failed. Using first entry", tc->name);
-			lnode = list_first(tc->qfl);
-			qf = lnode_get(lnode);
-			if (qf != NULL)
-				return qf;
-			nlog(LOG_WARNING, "Question File Selection (Specific) for %s failed. Unable to select First Question File", tc->name);
-			return NULL;			
 		}
+		nlog(LOG_WARNING, "Question File Selection (Specific) for %s failed. Using first entry", tc->name);
+		lnode = list_first(tc->qfl);
+		qf = lnode_get(lnode);
+		if (qf != NULL)
+			return qf;
+		nlog(LOG_WARNING, "Question File Selection (Specific) for %s failed. Unable to select First Question File", tc->name);
 	}
-	/* to shut up the compilers */
 	return NULL;
 }	
 
