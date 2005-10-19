@@ -30,6 +30,10 @@
 #include "neostats.h"	/* Neostats API */
 #include "TriviaServ.h"
 
+static int find_cat_name(const void *catnode, const void *name);
+static void obscure_question(const TriviaChan *tc);
+static int tvs_doregex(Questions *qe, char *buf);
+static QuestionFiles *tvs_randomquestfile(TriviaChan *tc);
 /*
  * Loads question file offsets into memory
 */
@@ -100,7 +104,7 @@ void tvs_parse_questions() {
 /*
  * returns existance of a category name
 */
-int find_cat_name(const void *catnode, const void *name) 
+static int find_cat_name(const void *catnode, const void *name) 
 {
 	QuestionFiles *qf = (void *)catnode;
 	return (ircstrcasecmp(qf->name, name));
@@ -110,7 +114,7 @@ int find_cat_name(const void *catnode, const void *name)
  * Adds/Removes/Lists or resets to default
  * Category Entries/Question Sets for a channel
 */
-void tvs_quesset(const CmdParams *cmdparams, TriviaChan *tc, char *qsn) 
+void tvs_quesset(const CmdParams *cmdparams, TriviaChan *tc, const char *qsn) 
 {
 	lnode_t *lnode;
 	QuestionFiles *qf;
@@ -219,17 +223,17 @@ void tvs_quesset(const CmdParams *cmdparams, TriviaChan *tc, char *qsn)
  * Returns a random question file from those
  * available for the channel.
 */
-QuestionFiles *tvs_randomquestfile(TriviaChan *tc) 
+static QuestionFiles *tvs_randomquestfile(TriviaChan *tc) 
 {
 	lnode_t *lnode;
 	QuestionFiles *qf;
-	int qfn, i;
+	unsigned int qfn, i;
 
 	if (list_isempty(tc->qfl)) 
 	{
 		/* if the qfl for this chan is empty, use all qfl's */
 		if (list_count(qfl) > 1)
-			qfn=(unsigned)(rand()%((int)(list_count(qfl))));
+			qfn=(unsigned int)(rand()%((int)(list_count(qfl))));
 		else
 			qfn= 0;
 		/* ok, this is bad.. but sigh, not much we can do atm. */
@@ -255,7 +259,7 @@ QuestionFiles *tvs_randomquestfile(TriviaChan *tc)
 		}
 	} else {
 		/* select a random question file */
-		qfn=(unsigned)(rand()%((int)(list_count(tc->qfl))));
+		qfn=(unsigned int)(rand()%((int)(list_count(tc->qfl))));
 		/* ok, this is bad.. but sigh, not much we can do atm. */
 		lnode = list_first(tc->qfl);
 		i = 0;
@@ -403,7 +407,7 @@ void tvs_ansquest(TriviaChan *tc)
  * creates regex used to test answers,
  * and fills in question structure fields
 */
-int tvs_doregex(Questions *qe, char *buf) 
+static int tvs_doregex(Questions *qe, char *buf) 
 {
 	pcre *re;
 	const char *error;
@@ -429,7 +433,7 @@ int tvs_doregex(Questions *qe, char *buf)
 	strlcpy(qe->question, buf, QUESTSIZE);
 	os_memset (tmpbuf, 0, ANSSIZE);
 	/* no, its not a infinate loop */
-	while (1) 
+	for( ; ; )
 	{	
 		rc = pcre_exec(re, NULL, qe->question, strlen(qe->question), 0, 0, ovector, 9);
 		if (rc <= 0) 
@@ -625,7 +629,7 @@ void do_hint(const TriviaChan *tc)
 /*
  * Obscures question from basic trivia answer bots
 */
-void obscure_question(const TriviaChan *tc) 
+static void obscure_question(const TriviaChan *tc) 
 {
 	char *out, *tmpcolour, *tmpunseen, *tmpstr;
 	Questions *qe;

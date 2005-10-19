@@ -37,17 +37,17 @@
 #endif
 
 #ifdef WIN32
-void *(*old_malloc)(size_t);
-void (*old_free) (void *);
+static void *(*old_malloc)(size_t);
+static void (*old_free) (void *);
 #endif
 
 const char *questpath = "data/TSQuestions/";
 
-int tvs_get_settings(void);
-int tvs_processtimer (void *);
-int tvs_dailytimer (void *);
-int tvs_weeklytimer (void *);
-int tvs_monthlytimer (void *);
+static int tvs_get_settings(void);
+static int tvs_processtimer (void *);
+static int tvs_dailytimer (void *);
+static int tvs_weeklytimer (void *);
+static int tvs_monthlytimer (void *);
 
 Bot *tvs_bot;
 TriviaServCfg TriviaServ;
@@ -56,7 +56,7 @@ list_t *userlist;
 hash_t *tch;
 
 /** Copyright info */
-const char *ts_copyright[] = {
+static const char *ts_copyright[] = {
 	"Copyright (c) 1999-2005, NeoStats",
 	"http://www.neostats.net/",
 	NULL
@@ -107,7 +107,7 @@ static bot_setting tvs_settings[]=
 /*
  * Channel message processing
 */
-int ChanPrivmsg (const CmdParams *cmdparams)
+static int ChanPrivmsg (const CmdParams *cmdparams)
 {
 	TriviaChan *tc;
 	char *tmpbuf;
@@ -304,7 +304,7 @@ int file_select (const struct direct *entry) {
 	return 0;	
 }
 #else
-char* filelist[] = {
+static char* filelist[] = {
 "acronyms1.qns",
 "ads1.qns",
 "algebra1.qns",
@@ -368,7 +368,7 @@ NULL
 /*
  * load settings
 */
-int tvs_get_settings() {
+static int tvs_get_settings(void) {
 	QuestionFiles *qf;
 	int i, count = 0;
 #ifndef WIN32
@@ -410,7 +410,7 @@ int tvs_get_settings() {
 /*
  * Process Timer to kick off hints or new questions when required
 */
-int tvs_processtimer(void *userptr) 
+static int tvs_processtimer(void *userptr) 
 {
 	TriviaChan *tc;
 	hscan_t hs;
@@ -537,21 +537,21 @@ static void tvs_clearscoretimers(int cleartype)
 	}
 }
 
-int tvs_dailytimer(void *userptr) 
+static int tvs_dailytimer(void *userptr) 
 {
 	SET_SEGV_LOCATION();
 	tvs_clearscoretimers(1);
 	return NS_SUCCESS;
 }
 
-int tvs_weeklytimer(void *userptr) 
+static int tvs_weeklytimer(void *userptr) 
 {
 	SET_SEGV_LOCATION();
 	tvs_clearscoretimers(2);
 	return NS_SUCCESS;
 }
 
-int tvs_monthlytimer(void *userptr) 
+static int tvs_monthlytimer(void *userptr) 
 {
 	int i;
 

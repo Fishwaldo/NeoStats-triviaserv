@@ -30,6 +30,8 @@
 #include "neostats.h"	/* Neostats API */
 #include "TriviaServ.h"
 
+static int GetUsersChannelScore (Client *u, const TriviaChan *tc);
+static void UserLeaving(Client *u);
 /*
  * Adds points to user for channel and network
 */
@@ -103,7 +105,7 @@ void tvs_addpoints(Client *u, TriviaChan *tc)
 /*
  * Return Users Score For Channel If Exists
 */
-int GetUsersChannelScore (Client *u, TriviaChan *tc) {
+static int GetUsersChannelScore (Client *u, const TriviaChan *tc) {
 	TriviaChannelScore *ts;
 	int channelscore = 0;
 	
@@ -190,7 +192,7 @@ int KillUser (const CmdParams *cmdparams)
  *		and add them to the current users score, removing the
  *		old from the database if they change nicks and identify again)
 */
-void UserLeaving (Client *u) 
+static void UserLeaving (Client *u) 
 {
 	TriviaUser *tu;
 	TriviaChannelScore *ts;

@@ -30,6 +30,7 @@
 #include "neostats.h"	/* Neostats API */
 #include "TriviaServ.h"
 
+static void OfflineTChan(Channel *c);
 /*
  * Loads Channel Data
 */
@@ -116,7 +117,7 @@ TriviaChan *NewTChan(Channel *c)
 /*
  * Last User left Channel
 */
-void OfflineTChan(Channel *c)
+static void OfflineTChan(Channel *c)
 {
 	TriviaChan *tc;
 	if (!c)

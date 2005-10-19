@@ -136,11 +136,9 @@ extern const char *tvs_help_hintchar[];
 
 /* TriviaUser.c */
 void tvs_addpoints(Client *u, TriviaChan *tc);
-int GetUsersChannelScore (Client *u, TriviaChan *tc);
 int UmodeUser(const CmdParams *cmdparams);
 int QuitNickUser(const CmdParams *cmdparams);
 int KillUser(const CmdParams *cmdparams);
-void UserLeaving(Client *u);
 void SaveAllUserScores(void);
 
 /* TriviaCmds.c */
@@ -162,7 +160,6 @@ int tvs_chans(const CmdParams *cmdparams);
 int LoadChannel( void *data, int size );
 int LoadCQSets( void *data, int size );
 TriviaChan *NewTChan(Channel *c);
-void OfflineTChan(Channel *c);
 void OnlineTChan(Channel *c);
 int DelTChan(const char *chan);
 void SaveTChan (TriviaChan *tc);
@@ -171,14 +168,10 @@ int NewChan(const CmdParams *cmdparams);
 
 /* TriviaQues.c */
 void tvs_parse_questions(void);
-int find_cat_name(const void *catnode, const void *name);
-void tvs_quesset(const CmdParams *cmdparams, TriviaChan *tc, char *qsn);
-QuestionFiles *tvs_randomquestfile(TriviaChan *tc);
+void tvs_quesset(const CmdParams *cmdparams, TriviaChan *tc, const char *qsn);
 void tvs_newquest(TriviaChan *tc);
 void tvs_ansquest(TriviaChan *tc);
-int tvs_doregex(Questions *qe, char *buf);
 void tvs_testanswer(Client* u, TriviaChan *tc, char *line);
 void do_hint(const TriviaChan *tc);
-void obscure_question(const TriviaChan *tc);
 
 #endif /* TRIVIASERV_H */
