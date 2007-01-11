@@ -15,7 +15,7 @@ DOCS = README.TriviaServ
 DATA = Questions/*.qns
 SCRIPTS = 
 DISTFILES = $(SRCS) $(DATA) $(DOCS) modconfig.h.in configure install-sh ChangeLog Makefile.in TriviaServ.h RELNOTES triviaserv.vcproj modconfigwin32.h
-DISTDIR = @PACKAGE@-@VERSION@
+DISTDIR = @DISTDIRVERSION@
 
 all:	module
 		@echo "Compilation complete."
