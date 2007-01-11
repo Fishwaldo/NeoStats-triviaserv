@@ -2,6 +2,7 @@ TriviaServ Module for NeoStats Changelog.
 Fish (F), Mark (M), DeadNotBuried (D)
 ==============================================================================
 3.0.a3-dev
+ - Make dist updates (F)
  - help updates (D)
  - add network score reset option (D)
  - channel questions now alloc their own memory to keep current question
