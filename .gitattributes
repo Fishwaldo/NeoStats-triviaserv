@@ -73,4 +73,5 @@ Questions/uselessfactsandtrivia1.qns -text
 /install-sh -text
 /modconfig.h.in -text
 /modconfigwin32.h -text
+/pulse.xml -text
 /triviaserv.vcproj -text
